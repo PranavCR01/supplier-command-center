@@ -1,0 +1,139 @@
+{
+  "company": {
+    "name": "Brightline Creative Group LLC",
+    "dba": "Brightline",
+    "founded": 2016,
+    "headquarters": "Chicago, IL",
+    "employees": 38,
+    "annual_revenue": "$6.2M",
+    "website": "www.brightlinecreative.com",
+    "ein": "83-1047291",
+    "duns": "194837261"
+  },
+  "contact": {
+    "primary": {
+      "name": "Devon Okafor",
+      "title": "Managing Director",
+      "email": "devon@brightlinecreative.com",
+      "phone": "+1 (312) 554-8820"
+    },
+    "ar_contact": {
+      "name": "Lily Chen",
+      "title": "Finance Manager",
+      "email": "finance@brightlinecreative.com",
+      "phone": "+1 (312) 554-8830"
+    }
+  },
+  "capabilities": [
+    "Brand Strategy & Identity",
+    "Digital Marketing",
+    "Content Creation & Copywriting",
+    "Video Production",
+    "UI/UX Design",
+    "Social Media Management",
+    "Marketing Analytics & Reporting",
+    "Event Marketing"
+  ],
+  "industries_served": [
+    "Consumer Goods",
+    "Technology",
+    "Healthcare",
+    "Financial Services",
+    "Nonprofits"
+  ],
+  "certifications": [
+    {
+      "name": "Google Partner",
+      "issuer": "Google LLC",
+      "cert_number": "GP-2024-IL-00928",
+      "issued": "2024-02-01",
+      "expires": "2025-01-31",
+      "status": "EXPIRING_SOON"
+    },
+    {
+      "name": "HubSpot Platinum Partner",
+      "issuer": "HubSpot Inc.",
+      "cert_number": "HS-PLAT-2024-88341",
+      "issued": "2023-11-01",
+      "expires": "2025-10-31",
+      "status": "active"
+    },
+    {
+      "name": "Meta Business Partner",
+      "issuer": "Meta Platforms Inc.",
+      "cert_number": "MBP-IL-2024-4421",
+      "issued": "2024-03-15",
+      "expires": "2025-03-14",
+      "status": "active"
+    }
+  ],
+  "insurance": {
+    "general_liability": {
+      "carrier": "State Farm",
+      "policy_number": "GL-2024-IL-77342",
+      "coverage_limit": "$1,000,000 per occurrence / $2,000,000 aggregate",
+      "expires": "2025-09-30",
+      "status": "active"
+    },
+    "professional_liability": {
+      "carrier": "Hiscox Insurance",
+      "policy_number": "PL-2024-IL-33219",
+      "coverage_limit": "$2,000,000 per claim",
+      "expires": "2025-09-30",
+      "status": "active"
+    },
+    "workers_comp": {
+      "carrier": "Employers Holdings",
+      "policy_number": "WC-IL-2024-55671",
+      "expires": "2025-12-31",
+      "status": "active"
+    }
+  },
+  "diversity": {
+    "classifications": ["Minority-Owned Business (MBE)", "Small Business (SB)"],
+    "certifying_body": "NMSDC",
+    "cert_number": "NMSDC-2024-MBE-IL-00772",
+    "expires": "2025-11-30"
+  },
+  "banking": {
+    "bank_name": "Chase",
+    "preferred_payment": "ACH",
+    "payment_terms_standard": "Net 45",
+    "w9_on_file": true
+  },
+  "active_buyers": [
+    {
+      "buyer_name": "Pacific Consumer Brands",
+      "since": "2020-05-01",
+      "annual_spend": "$780K",
+      "platform": "Coupa",
+      "vendor_id": "PCB-VEND-0234",
+      "status": "preferred"
+    },
+    {
+      "buyer_name": "Vantage Health Systems",
+      "since": "2023-03-01",
+      "annual_spend": "$310K",
+      "platform": "Astra (Valorant)",
+      "vendor_id": "ASTR-VHS-0088",
+      "status": "approved"
+    }
+  ],
+  "standard_rate_card": {
+    "currency": "USD",
+    "effective_date": "2025-01-01",
+    "roles": [
+      { "role": "Creative Director", "rate": 185, "unit": "per hour" },
+      { "role": "Brand Strategist", "rate": 165, "unit": "per hour" },
+      { "role": "Senior Designer", "rate": 135, "unit": "per hour" },
+      { "role": "Copywriter", "rate": 120, "unit": "per hour" },
+      { "role": "Video Producer", "rate": 145, "unit": "per hour" },
+      { "role": "Digital Marketing Analyst", "rate": 110, "unit": "per hour" }
+    ],
+    "project_packages": [
+      { "package": "Brand Identity Full Package", "price": 28000, "deliverables": "Logo, brand guidelines, templates" },
+      { "package": "Monthly Social Media Retainer", "price": 4500, "deliverables": "20 posts/mo, community management, monthly report" },
+      { "package": "Video Production (60-sec)", "price": 12000, "deliverables": "Script, shoot, edit, 3 revisions" }
+    ]
+  }
+}

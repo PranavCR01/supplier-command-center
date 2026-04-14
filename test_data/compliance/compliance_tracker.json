@@ -1,0 +1,135 @@
+{
+  "supplier_id": "acme_tech_solutions",
+  "last_updated": "2025-04-07",
+  "compliance_items": [
+    {
+      "id": "comp_001",
+      "category": "Insurance",
+      "name": "Cyber Liability Insurance",
+      "issuer": "Chubb Insurance",
+      "policy_number": "CY-2024-TX-11038",
+      "issued": "2024-04-15",
+      "expires": "2025-04-15",
+      "days_until_expiry": 8,
+      "status": "critical",
+      "required_by": ["Meridian Capital Group", "Northstar Manufacturing", "Vantage Health Systems"],
+      "minimum_coverage_required": {
+        "Meridian Capital Group": "$5,000,000 aggregate (upgraded requirement)",
+        "Northstar Manufacturing": "$2,000,000 aggregate",
+        "Vantage Health Systems": "$2,000,000 per occurrence / $5,000,000 aggregate (RFP requirement)"
+      },
+      "current_coverage": "$3,000,000",
+      "action_needed": "Renew policy AND increase coverage to $5M aggregate. Contact Chubb broker immediately.",
+      "contact_broker": "Sarah Mills, Chubb — s.mills@chubb.com / (713) 882-4401"
+    },
+    {
+      "id": "comp_002",
+      "category": "Certification",
+      "name": "SOC 2 Type II",
+      "issuer": "Deloitte & Touche LLP",
+      "cert_number": "SOC2-2024-AT-00441",
+      "issued": "2024-01-10",
+      "expires": "2025-01-09",
+      "days_until_expiry": -88,
+      "status": "expired",
+      "required_by": ["Meridian Capital Group", "Vantage Health Systems", "Clearfield Financial"],
+      "action_needed": "SOC 2 audit overdue. Contact Deloitte to schedule Type II audit immediately. Most buyers require report within 12 months.",
+      "notes": "Without current SOC 2, Clearfield Financial onboarding will be blocked."
+    },
+    {
+      "id": "comp_003",
+      "category": "Certification",
+      "name": "ISO 27001",
+      "issuer": "BSI Group",
+      "cert_number": "IS-748291",
+      "issued": "2022-03-15",
+      "expires": "2025-03-14",
+      "days_until_expiry": -24,
+      "status": "expired",
+      "required_by": ["Vantage Health Systems"],
+      "action_needed": "ISO 27001 surveillance audit overdue. Contact BSI Group to schedule.",
+      "notes": "Listed as preferred qualification in VHS RFP."
+    },
+    {
+      "id": "comp_004",
+      "category": "Certification",
+      "name": "Microsoft Gold Partner",
+      "issuer": "Microsoft",
+      "cert_number": "MPN-7743921",
+      "issued": "2024-04-01",
+      "expires": "2025-03-31",
+      "days_until_expiry": -7,
+      "status": "expired",
+      "required_by": [],
+      "action_needed": "Renew Microsoft Gold Partner status via Microsoft Partner Center.",
+      "notes": "Not required by any current buyers but a sales differentiator."
+    },
+    {
+      "id": "comp_005",
+      "category": "Insurance",
+      "name": "General Liability Insurance",
+      "issuer": "Hartford Financial Services",
+      "policy_number": "GL-2024-TX-00882734",
+      "issued": "2024-07-01",
+      "expires": "2025-06-30",
+      "days_until_expiry": 84,
+      "status": "active",
+      "required_by": ["Meridian Capital Group", "Northstar Manufacturing", "Vantage Health Systems", "Clearfield Financial"],
+      "current_coverage": "$2,000,000 per occurrence / $4,000,000 aggregate",
+      "action_needed": null
+    },
+    {
+      "id": "comp_006",
+      "category": "Insurance",
+      "name": "Professional Liability Insurance",
+      "issuer": "Travelers Insurance",
+      "policy_number": "PL-2024-TX-44821",
+      "issued": "2024-07-01",
+      "expires": "2025-06-30",
+      "days_until_expiry": 84,
+      "status": "active",
+      "required_by": ["Meridian Capital Group", "Northstar Manufacturing", "Vantage Health Systems", "Clearfield Financial"],
+      "current_coverage": "$5,000,000 per claim",
+      "action_needed": null
+    },
+    {
+      "id": "comp_007",
+      "category": "Certification",
+      "name": "CMMC Level 2",
+      "issuer": "Cyber AB",
+      "cert_number": "CMMC-L2-TX-20230882",
+      "issued": "2023-06-01",
+      "expires": "2026-05-31",
+      "days_until_expiry": 419,
+      "status": "active",
+      "required_by": [],
+      "action_needed": null
+    },
+    {
+      "id": "comp_008",
+      "category": "Diversity",
+      "name": "WBENC Women-Owned Small Business Certification",
+      "issuer": "WBENC",
+      "cert_number": "WBENC-2024-TX-00441",
+      "issued": "2024-09-01",
+      "expires": "2025-08-31",
+      "days_until_expiry": 146,
+      "status": "active",
+      "required_by": [],
+      "action_needed": null,
+      "notes": "Valuable for diversity spend reporting for buyers with diversity targets."
+    }
+  ],
+  "summary": {
+    "total_items": 8,
+    "critical": 1,
+    "expired": 3,
+    "expiring_soon_30_days": 1,
+    "active": 4,
+    "immediate_action_required": [
+      "Renew + increase Cyber Liability insurance (expires in 8 days, coverage gap with Meridian)",
+      "Schedule SOC 2 Type II audit (expired 88 days ago, blocking Clearfield onboarding)",
+      "Schedule ISO 27001 surveillance audit (expired 24 days ago, affects VHS RFP scoring)"
+    ]
+  }
+}

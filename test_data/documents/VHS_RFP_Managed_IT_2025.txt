@@ -1,0 +1,199 @@
+REQUEST FOR PROPOSAL
+Managed IT Services & Cybersecurity
+RFP No. VHS-IT-2025-004
+
+Issued by: Vantage Health Systems
+Procurement & Supply Chain Department
+1400 Vantage Parkway, Suite 300
+Nashville, TN 37201
+
+Issue Date: April 7, 2025
+Response Deadline: April 30, 2025, 5:00 PM CST
+Questions Deadline: April 14, 2025, 5:00 PM CST
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 1 — INTRODUCTION & BACKGROUND
+
+1.1 Overview
+Vantage Health Systems (VHS) is a regional healthcare network operating 6 facilities across Tennessee and Kentucky, serving approximately 1.2 million patients annually. VHS employs 3,400 staff across clinical and administrative functions.
+
+1.2 Purpose
+VHS is seeking proposals from qualified IT managed services providers to deliver comprehensive managed IT services and cybersecurity support. The selected vendor will replace our current fragmented IT support model with a unified, proactive managed services partnership.
+
+1.3 Contract Term
+Initial term: 2 years (May 1, 2025 – April 30, 2027)
+Renewal option: One 1-year renewal at VHS's discretion
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 2 — SCOPE OF SERVICES
+
+2.1 Help Desk & End-User Support
+- Tier 1, 2, and 3 help desk support covering approximately 850 endpoints (laptops, workstations, mobile devices)
+- 24x7x365 availability with SLA target: P1 issues resolved within 4 hours
+- On-site support at Nashville headquarters (1 FTE minimum on-site)
+- Remote support for remaining 5 facilities
+
+2.2 Network Monitoring & Management
+- 24x7 network monitoring across all 6 sites
+- Network infrastructure management (switching, routing, wireless)
+- Monthly network performance reporting
+- Incident escalation and resolution
+
+2.3 Endpoint Security & Management
+- Endpoint Detection & Response (EDR) deployment and management for all 850 endpoints
+- Patch management — OS and third-party applications
+- Mobile Device Management (MDM)
+- Email security (anti-phishing, anti-malware)
+
+2.4 Cybersecurity Services
+- Security Information & Event Management (SIEM) monitoring
+- Quarterly vulnerability assessments
+- Annual penetration testing (internal and external)
+- Phishing simulation training program
+- Incident response planning and tabletop exercises
+
+2.5 HIPAA Compliance Support
+- Ongoing HIPAA risk assessment support
+- Policy and procedure review
+- Staff training support
+- Breach notification advisory
+
+2.6 Reporting & Governance
+- Monthly executive dashboard
+- Quarterly business reviews (QBR) with VHS leadership
+- SLA performance reporting
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 3 — VENDOR QUALIFICATIONS
+
+3.1 Mandatory Requirements
+Vendors must meet ALL of the following to be considered:
+
+[ ] Minimum 5 years of experience delivering managed IT services
+[ ] Healthcare industry experience (minimum 3 healthcare clients with references)
+[ ] HIPAA business associate agreement (BAA) execution capability
+[ ] SOC 2 Type II certification (current, within 12 months)
+[ ] Cyber liability insurance: minimum $2M per occurrence / $5M aggregate
+[ ] General liability insurance: minimum $1M per occurrence
+[ ] 24x7 NOC operations capability (own or contracted)
+
+3.2 Preferred Qualifications
+- ISO 27001 certification
+- HITRUST CSF certification or experience
+- Experience with Epic EHR system support
+- Existing team in Tennessee or ability to place on-site staff within 30 days
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 4 — PROPOSAL REQUIREMENTS
+
+4.1 Executive Summary (max 2 pages)
+Provide a concise overview of your company, your value proposition for VHS, and why you are the best fit for this engagement.
+
+4.2 Company Background
+- Company history and ownership structure
+- Total employees and number dedicated to healthcare clients
+- List of current healthcare clients (with permission to reference)
+- Financial stability evidence (letter from bank or most recent audited financials)
+
+4.3 Technical Approach
+- Detailed description of how you will deliver each service in Section 2
+- Tools and platforms to be used (ITSM, SIEM, EDR, RMM, etc.)
+- Transition / implementation plan for first 90 days
+- Staffing plan — dedicated vs. shared resources
+
+4.4 Cybersecurity Approach
+- Security philosophy and framework (NIST, CIS Controls, etc.)
+- SIEM platform and threat intelligence sources
+- Incident response process
+- Sample vulnerability assessment methodology
+
+4.5 HIPAA & Healthcare Compliance
+- Describe your HIPAA compliance program
+- Provide most recent HIPAA training completion rates for staff
+- Describe experience with HHS audit support
+
+4.6 SLA Commitments
+Complete the attached SLA matrix (Exhibit A) with your proposed commitments
+
+4.7 Pricing
+Submit pricing using the attached pricing template (Exhibit B):
+- Monthly flat-fee for managed services (all-inclusive)
+- Any per-incident fees outside scope
+- Implementation / transition fee
+- Year 2 pricing cap / escalation clause
+
+4.8 References
+Provide 3 references from healthcare clients. Include contact name, title, phone, and email.
+
+4.9 Certifications & Insurance
+Attach current copies of:
+- SOC 2 Type II report (executive summary acceptable)
+- ISO 27001 certificate (if applicable)
+- Certificate of insurance for all required coverage
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 5 — EVALUATION CRITERIA
+
+Proposals will be scored on the following weighted criteria:
+
+Technical Approach & Qualifications    35%
+Pricing & Value                        25%
+Healthcare Experience & References     20%
+Security & Compliance Capabilities     15%
+Transition Plan & Implementation       5%
+                                      ────
+Total                                 100%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 6 — SUBMISSION INSTRUCTIONS
+
+Submit via: Astra Supplier Portal (preferred) or email to rfp@vantagehealth.com
+Format: PDF, maximum 50 pages excluding attachments
+Deadline: April 30, 2025, 5:00 PM CST
+
+Questions must be submitted to rfp@vantagehealth.com by April 14, 2025.
+Answers will be posted to all invited vendors by April 17, 2025.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EXHIBIT A — SLA MATRIX (for vendor to complete)
+
+Incident Priority | Definition | Vendor Response Time | Vendor Resolution Target
+P1 Critical       | System down, patient care impacted | [  ] minutes | [  ] hours
+P2 High           | Major service degraded | [  ] hours | [  ] hours
+P3 Medium         | Non-critical issue | [  ] hours | [  ] business days
+P4 Low            | Minor, cosmetic | [  ] business days | [  ] business days
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EXHIBIT B — PRICING TEMPLATE (for vendor to complete)
+
+Service Component                          Monthly Fee (USD)
+─────────────────────────────────────────────────────────────
+Help Desk & End-User Support (850 seats)   $____________
+Network Monitoring & Management            $____________
+Endpoint Security & EDR                    $____________
+SIEM / Security Monitoring                 $____________
+HIPAA Compliance Advisory                  $____________
+─────────────────────────────────────────────────────────────
+TOTAL MONTHLY MANAGED SERVICES FEE        $____________
+
+One-Time Fees
+Implementation / Transition Fee            $____________
+Other (describe):                          $____________
+
+Annual Services (billed separately)
+Vulnerability Assessment (quarterly x4)   $____________/year
+Penetration Testing (annual)              $____________/year
+Tabletop Exercise (annual)                $____________/year
+
+Year 2 Pricing: Fixed / Capped at ____% increase
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF RFP

@@ -1,0 +1,194 @@
+{
+  "company": {
+    "name": "Acme Tech Solutions Inc.",
+    "dba": "AcmeTech",
+    "founded": 2011,
+    "headquarters": "Austin, TX",
+    "employees": 142,
+    "annual_revenue": "$18.5M",
+    "website": "www.acmetechsolutions.com",
+    "ein": "47-2938471",
+    "duns": "082947361",
+    "cage_code": "7R4B2"
+  },
+  "contact": {
+    "primary": {
+      "name": "Sandra Kim",
+      "title": "VP of Business Development",
+      "email": "s.kim@acmetechsolutions.com",
+      "phone": "+1 (512) 847-2930"
+    },
+    "ar_contact": {
+      "name": "Marcus Webb",
+      "title": "Accounts Receivable Manager",
+      "email": "ar@acmetechsolutions.com",
+      "phone": "+1 (512) 847-2944"
+    }
+  },
+  "capabilities": [
+    "Managed IT Services",
+    "Cloud Infrastructure (AWS, Azure, GCP)",
+    "Cybersecurity & Compliance",
+    "Help Desk & End-User Support",
+    "Network Design & Implementation",
+    "Data Center Migration",
+    "IT Asset Management",
+    "SaaS Integration & Administration"
+  ],
+  "industries_served": [
+    "Financial Services",
+    "Healthcare",
+    "Manufacturing",
+    "Retail",
+    "Professional Services"
+  ],
+  "certifications": [
+    {
+      "name": "ISO 27001",
+      "issuer": "BSI Group",
+      "cert_number": "IS-748291",
+      "issued": "2022-03-15",
+      "expires": "2025-03-14",
+      "status": "active"
+    },
+    {
+      "name": "SOC 2 Type II",
+      "issuer": "Deloitte & Touche LLP",
+      "cert_number": "SOC2-2024-AT-00441",
+      "issued": "2024-01-10",
+      "expires": "2025-01-09",
+      "status": "active"
+    },
+    {
+      "name": "CMMC Level 2",
+      "issuer": "Cyber AB",
+      "cert_number": "CMMC-L2-TX-20230882",
+      "issued": "2023-06-01",
+      "expires": "2026-05-31",
+      "status": "active"
+    },
+    {
+      "name": "Microsoft Gold Partner",
+      "issuer": "Microsoft",
+      "cert_number": "MPN-7743921",
+      "issued": "2024-04-01",
+      "expires": "2025-03-31",
+      "status": "active"
+    }
+  ],
+  "insurance": {
+    "general_liability": {
+      "carrier": "Hartford Financial Services",
+      "policy_number": "GL-2024-TX-00882734",
+      "coverage_limit": "$2,000,000 per occurrence / $4,000,000 aggregate",
+      "expires": "2025-06-30",
+      "status": "active"
+    },
+    "professional_liability": {
+      "carrier": "Travelers Insurance",
+      "policy_number": "PL-2024-TX-44821",
+      "coverage_limit": "$5,000,000 per claim",
+      "expires": "2025-06-30",
+      "status": "active"
+    },
+    "cyber_liability": {
+      "carrier": "Chubb Insurance",
+      "policy_number": "CY-2024-TX-11038",
+      "coverage_limit": "$3,000,000",
+      "expires": "2025-04-15",
+      "status": "EXPIRING_SOON"
+    },
+    "workers_comp": {
+      "carrier": "Texas Mutual Insurance",
+      "policy_number": "WC-TX-2024-98823",
+      "expires": "2025-12-31",
+      "status": "active"
+    }
+  },
+  "diversity": {
+    "classifications": ["Women-Owned Small Business (WOSB)", "Small Business (SB)"],
+    "certifying_body": "WBENC",
+    "cert_number": "WBENC-2024-TX-00441",
+    "expires": "2025-08-31"
+  },
+  "banking": {
+    "bank_name": "Wells Fargo",
+    "routing_number": "REDACTED",
+    "account_type": "Business Checking",
+    "preferred_payment": "ACH",
+    "payment_terms_standard": "Net 30",
+    "w9_on_file": true
+  },
+  "active_buyers": [
+    {
+      "buyer_name": "Meridian Capital Group",
+      "since": "2019-03-01",
+      "annual_spend": "$1.2M",
+      "platform": "Coupa",
+      "vendor_id": "V-MCG-00441",
+      "status": "preferred"
+    },
+    {
+      "buyer_name": "Northstar Manufacturing",
+      "since": "2021-07-15",
+      "annual_spend": "$880K",
+      "platform": "SAP Ariba",
+      "vendor_id": "ARB-NS-77823",
+      "status": "approved"
+    },
+    {
+      "buyer_name": "Vantage Health Systems",
+      "since": "2022-01-10",
+      "annual_spend": "$540K",
+      "platform": "Astra (Valorant)",
+      "vendor_id": "ASTR-VHS-0012",
+      "status": "approved"
+    },
+    {
+      "buyer_name": "Clearfield Financial",
+      "since": "2023-09-01",
+      "annual_spend": "$220K",
+      "platform": "Email / Manual",
+      "vendor_id": "CF-VENDOR-088",
+      "status": "onboarding"
+    }
+  ],
+  "standard_rate_card": {
+    "currency": "USD",
+    "effective_date": "2025-01-01",
+    "roles": [
+      { "role": "Senior Cloud Architect", "rate": 195, "unit": "per hour" },
+      { "role": "Cybersecurity Engineer", "rate": 175, "unit": "per hour" },
+      { "role": "IT Project Manager", "rate": 155, "unit": "per hour" },
+      { "role": "Systems Engineer", "rate": 140, "unit": "per hour" },
+      { "role": "Help Desk Tier 2", "rate": 85, "unit": "per hour" },
+      { "role": "Help Desk Tier 1", "rate": 65, "unit": "per hour" }
+    ],
+    "managed_services": [
+      { "service": "Fully Managed IT (per seat/month)", "rate": 145, "unit": "per seat/month" },
+      { "service": "Cloud Monitoring & Management", "rate": 2800, "unit": "per month" },
+      { "service": "Security Operations (SOC)", "rate": 4500, "unit": "per month" }
+    ],
+    "volume_discounts": [
+      { "threshold": "$500K annual", "discount": "5%" },
+      { "threshold": "$1M annual", "discount": "10%" },
+      { "threshold": "$2M annual", "discount": "15%" }
+    ]
+  },
+  "references": [
+    {
+      "company": "BlueStar Logistics",
+      "contact": "Jim Torres, CTO",
+      "phone": "+1 (214) 882-4400",
+      "relationship": "Managed IT client since 2018",
+      "can_contact": true
+    },
+    {
+      "company": "Lone Star Medical Group",
+      "contact": "Patricia Nguyen, VP IT",
+      "phone": "+1 (512) 334-9921",
+      "relationship": "Cybersecurity & compliance since 2020",
+      "can_contact": true
+    }
+  ]
+}

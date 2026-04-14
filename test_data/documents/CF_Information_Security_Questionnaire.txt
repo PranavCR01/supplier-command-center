@@ -1,0 +1,158 @@
+VENDOR INFORMATION SECURITY QUESTIONNAIRE
+Clearfield Financial — Vendor Risk Management Program
+Version 2025.1
+
+Vendor Name: ________________________________
+Date Completed: ________________________________
+Primary Contact: ________________________________
+
+INSTRUCTIONS: Please answer all questions completely. For Yes/No questions, 
+provide supporting evidence or explanation in the Notes column. 
+Incomplete questionnaires will be returned for completion.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION A — ORGANIZATIONAL SECURITY
+
+A1. Does your organization have a formally documented Information Security Policy?
+    [ ] Yes  [ ] No  [ ] In Progress
+    Notes: ________________________________
+
+A2. Is your Information Security Policy reviewed and updated at least annually?
+    [ ] Yes  [ ] No
+    Last review date: ________________________________
+
+A3. Does your organization have a dedicated Information Security Officer (CISO/ISO)?
+    [ ] Yes  [ ] No
+    Name/Title: ________________________________
+
+A4. Do you hold any of the following certifications? (select all that apply)
+    [ ] SOC 2 Type I    [ ] SOC 2 Type II    [ ] ISO 27001
+    [ ] PCI DSS         [ ] HITRUST          [ ] CMMC
+    [ ] FedRAMP         [ ] Other: ________________________________
+    Attach most recent certification documents.
+
+A5. Has your organization experienced a data breach or security incident in the past 3 years?
+    [ ] Yes  [ ] No
+    If Yes, briefly describe: ________________________________
+
+A6. Do you perform annual employee security awareness training?
+    [ ] Yes  [ ] No
+    Last training completion rate: _______%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION B — DATA HANDLING & PRIVACY
+
+B1. Will your organization process, store, or transmit Clearfield Financial data or 
+    customer data as part of this engagement?
+    [ ] Yes  [ ] No
+    If Yes, describe what data: ________________________________
+
+B2. Where will Clearfield Financial data be stored?
+    [ ] US Only  [ ] EU  [ ] Other: ________________________________
+    Specify data center locations: ________________________________
+
+B3. Do you encrypt data at rest?
+    [ ] Yes  [ ] No
+    Encryption standard used: ________________________________
+
+B4. Do you encrypt data in transit?
+    [ ] Yes  [ ] No
+    Protocol used (TLS 1.2+, etc.): ________________________________
+
+B5. Do you have a formal data retention and destruction policy?
+    [ ] Yes  [ ] No
+    Retention period for client data: ________________________________
+
+B6. Do you share Clearfield Financial data with any subcontractors or third parties?
+    [ ] Yes  [ ] No
+    If Yes, list subcontractors: ________________________________
+
+B7. Are you compliant with applicable privacy regulations? (select all that apply)
+    [ ] GDPR  [ ] CCPA  [ ] GLBA  [ ] SOX  [ ] HIPAA
+    [ ] Other: ________________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION C — ACCESS CONTROL
+
+C1. Do you enforce Multi-Factor Authentication (MFA) for:
+    [ ] All employee accounts    [ ] Admin accounts only    [ ] No MFA
+    
+C2. Do you have a formal process for provisioning and de-provisioning user access?
+    [ ] Yes  [ ] No
+    Average de-provisioning time after termination: _______ hours
+
+C3. Do you enforce the principle of least privilege for access to systems?
+    [ ] Yes  [ ] No
+
+C4. Do you conduct periodic access reviews?
+    [ ] Yes  [ ] No
+    Frequency: ________________________________
+
+C5. Do you have a Privileged Access Management (PAM) solution?
+    [ ] Yes  [ ] No  [ ] In Progress
+    Tool used: ________________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION D — VULNERABILITY & PATCH MANAGEMENT
+
+D1. Do you have a formal vulnerability management program?
+    [ ] Yes  [ ] No
+
+D2. How frequently do you perform vulnerability scans?
+    [ ] Weekly  [ ] Monthly  [ ] Quarterly  [ ] Annually  [ ] Ad hoc
+
+D3. What is your SLA for patching critical vulnerabilities?
+    Critical (CVSS 9.0+): Within _______ days
+    High (CVSS 7.0-8.9): Within _______ days
+    Medium (CVSS 4.0-6.9): Within _______ days
+
+D4. Do you perform annual penetration testing?
+    [ ] Yes  [ ] No
+    Last test date: ________________________________
+    Performed by: [ ] Internal  [ ] Third Party
+
+D5. Do you have an EDR (Endpoint Detection & Response) solution deployed?
+    [ ] Yes  [ ] No
+    Solution used: ________________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION E — INCIDENT RESPONSE & BUSINESS CONTINUITY
+
+E1. Do you have a documented Incident Response Plan (IRP)?
+    [ ] Yes  [ ] No
+    Last tested: ________________________________
+
+E2. What is your notification timeline for security incidents affecting client data?
+    [ ] Within 24 hours  [ ] Within 48 hours  [ ] Within 72 hours  [ ] Other: _______
+
+E3. Do you have a Business Continuity Plan (BCP)?
+    [ ] Yes  [ ] No
+    Last tested: ________________________________
+
+E4. What is your RTO (Recovery Time Objective) for critical systems?
+    RTO: _______ hours     RPO: _______ hours
+
+E5. Do you maintain offsite backups?
+    [ ] Yes  [ ] No
+    Backup frequency: ________________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION F — VENDOR ATTESTATION
+
+I certify that the information provided in this questionnaire is accurate and complete 
+to the best of my knowledge. I understand that Clearfield Financial may request 
+supporting documentation for any response.
+
+Authorized Signatory: ________________________________
+Title: ________________________________
+Date: ________________________________
+Company: ________________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF QUESTIONNAIRE

@@ -1,0 +1,101 @@
+[
+  {
+    "id": "req_001",
+    "type": "rfp",
+    "priority": "high",
+    "deadline": "2025-05-02",
+    "received_at": "2025-04-07T09:14:00Z",
+    "from": {
+      "buyer_name": "Vantage Health Systems",
+      "contact_name": "Rachel Thornton",
+      "contact_title": "Category Manager, IT & Technology",
+      "contact_email": "r.thornton@vantagehealth.com",
+      "platform": "Astra (Valorant)"
+    },
+    "subject": "RFP: Managed IT Services & Cybersecurity — 2025-2027 Contract",
+    "body": "Dear Acme Tech Solutions,\n\nVantage Health Systems is issuing a formal Request for Proposal for Managed IT Services and Cybersecurity support across our 6 regional facilities. We are seeking a qualified vendor to provide end-to-end IT managed services, including help desk support (Tier 1-3), network monitoring, endpoint management, and HIPAA-compliant cybersecurity services.\n\nScope of services required:\n- 24/7 help desk support covering approximately 850 endpoints\n- Network monitoring and management across 6 sites\n- Endpoint Detection & Response (EDR) platform\n- Quarterly vulnerability assessments\n- Annual penetration testing\n- HIPAA compliance advisory and audit support\n\nContract term: 2 years with one 1-year renewal option.\nEstimated annual value: $1.4M - $1.8M.\n\nPlease submit your proposal including your approach, team bios, relevant case studies (healthcare preferred), pricing breakdown, and references by April 30, 2025.\n\nThe full RFP document is attached. Please acknowledge receipt and confirm your intent to bid by April 10, 2025.\n\nThis RFP is being evaluated through our Astra platform. Please respond via the supplier portal or directly to this email.\n\nRegards,\nRachel Thornton\nCategory Manager, IT & Technology\nVantage Health Systems",
+    "attachments": ["VHS_RFP_Managed_IT_2025.pdf"],
+    "status": "pending_response",
+    "tags": ["rfp", "managed-it", "healthcare", "hipaa", "high-value"]
+  },
+  {
+    "id": "req_002",
+    "type": "compliance",
+    "priority": "urgent",
+    "deadline": "2025-04-15",
+    "received_at": "2025-04-06T14:33:00Z",
+    "from": {
+      "buyer_name": "Meridian Capital Group",
+      "contact_name": "James Obi",
+      "contact_title": "Procurement Operations",
+      "contact_email": "j.obi@meridiancapital.com",
+      "platform": "Coupa"
+    },
+    "subject": "ACTION REQUIRED: Updated Cyber Liability Certificate Needed by April 15",
+    "body": "Hi Sandra,\n\nThis is a reminder that your cyber liability insurance certificate on file with Meridian Capital Group expires on April 15, 2025. Our vendor compliance policy requires an updated certificate of insurance (COI) to be on file before the expiry date to avoid a temporary suspension of purchase orders.\n\nPlease upload your updated COI to the Coupa supplier portal at your earliest convenience, or send it directly to our vendor compliance team at compliance@meridiancapital.com.\n\nRequired coverage minimums for cyber liability:\n- Per occurrence: $2,000,000\n- Annual aggregate: $5,000,000\n\nNote: Your current policy (Chubb, policy #CY-2024-TX-11038) shows coverage of $3,000,000 which is below our new minimum requirement of $5,000,000 aggregate effective April 1, 2025. Please confirm with your broker whether your current policy can be endorsed to meet this requirement.\n\nIf you have any questions please contact our vendor compliance team.\n\nThank you,\nJames Obi\nProcurement Operations\nMeridian Capital Group",
+    "attachments": [],
+    "status": "urgent_action",
+    "tags": ["compliance", "insurance", "coupa", "expiring-doc"]
+  },
+  {
+    "id": "req_003",
+    "type": "onboarding",
+    "priority": "medium",
+    "deadline": "2025-04-25",
+    "received_at": "2025-04-05T11:00:00Z",
+    "from": {
+      "buyer_name": "Clearfield Financial",
+      "contact_name": "Priya Anand",
+      "contact_title": "Procurement Manager",
+      "contact_email": "p.anand@clearfieldfinancial.com",
+      "platform": "Email / Manual"
+    },
+    "subject": "Vendor Onboarding — Documents Required",
+    "body": "Dear Acme Tech Solutions team,\n\nWelcome to the Clearfield Financial vendor network! We are excited to formalize our partnership. To complete your onboarding, we need the following documents submitted to our procurement team:\n\n1. Completed W-9 form (2024 version)\n2. Certificate of Insurance — General Liability (min $1M per occurrence)\n3. Certificate of Insurance — Professional Liability (min $2M)\n4. Certificate of Insurance — Cyber Liability (min $2M)\n5. Signed Vendor Code of Conduct (attached)\n6. Completed Vendor Information Form (attached)\n7. SOC 2 Type II report or summary (most recent)\n8. ACH payment setup form\n9. Company overview / capabilities statement (1-2 pages)\n\nPlease note that Clearfield Financial operates under strict financial services regulations. We will also require you to complete our Information Security Questionnaire (attached, 47 questions) prior to final approval.\n\nAll documents should be submitted via email to vendors@clearfieldfinancial.com by April 25, 2025.\n\nThank you for your patience — we typically complete the review process within 10 business days of receiving all required documents.\n\nBest regards,\nPriya Anand\nProcurement Manager\nClearfield Financial",
+    "attachments": [
+      "CF_Vendor_Code_of_Conduct_2025.pdf",
+      "CF_Vendor_Information_Form.xlsx",
+      "CF_Information_Security_Questionnaire.pdf"
+    ],
+    "status": "pending_response",
+    "tags": ["onboarding", "financial-services", "documents-required"]
+  },
+  {
+    "id": "req_004",
+    "type": "rfq",
+    "priority": "medium",
+    "deadline": "2025-04-18",
+    "received_at": "2025-04-04T16:20:00Z",
+    "from": {
+      "buyer_name": "Northstar Manufacturing",
+      "contact_name": "Greg Halliday",
+      "contact_title": "IT Category Buyer",
+      "contact_email": "g.halliday@northstarmfg.com",
+      "platform": "SAP Ariba"
+    },
+    "subject": "RFQ-2025-0441: IT Help Desk Staffing Augmentation — Q2/Q3 2025",
+    "body": "Good afternoon,\n\nNorthstar Manufacturing is requesting quotes for temporary IT Help Desk staff augmentation to cover increased workload during our ERP migration project (SAP S/4HANA rollout, April–September 2025).\n\nRequirements:\n- 3x Tier 1 Help Desk Technicians\n- 2x Tier 2 Systems Support Specialists\n- Start date: April 28, 2025\n- Duration: 22 weeks (with possible extension)\n- On-site at our Plymouth, MN facility (Mon-Fri, 7am-6pm)\n- Must have experience supporting manufacturing floor environments and SAP end-user support\n\nPlease provide:\n1. Hourly bill rates for each role\n2. Your typical ramp time from contract signature to staff on-site\n3. Candidate profiles / CVs for available resources\n4. Your staffing approach and backup plan if a resource is unavailable\n\nSubmit via SAP Ariba RFQ response portal by April 18, 2025.\n\nGreg Halliday\nIT Category Buyer\nNorthstar Manufacturing",
+    "attachments": ["NS_RFQ_2025_0441_Full_Requirements.pdf"],
+    "status": "pending_response",
+    "tags": ["rfq", "staffing", "ariba", "manufacturing", "time-sensitive"]
+  },
+  {
+    "id": "req_005",
+    "type": "survey",
+    "priority": "low",
+    "deadline": "2025-04-30",
+    "received_at": "2025-04-03T10:05:00Z",
+    "from": {
+      "buyer_name": "Vantage Health Systems",
+      "contact_name": "Supplier Relations Team",
+      "contact_title": "Supplier Relations",
+      "contact_email": "supplier.relations@vantagehealth.com",
+      "platform": "Astra (Valorant)"
+    },
+    "subject": "Annual Supplier ESG & Diversity Survey — Please Complete by April 30",
+    "body": "Dear Valued Supplier,\n\nAs part of our commitment to responsible sourcing and supply chain transparency, Vantage Health Systems conducts an annual Environmental, Social & Governance (ESG) and Supplier Diversity survey.\n\nThis year's survey covers:\n- Environmental: Carbon footprint, waste reduction programs, energy sources\n- Social: Workforce diversity data, pay equity practices, community investment\n- Governance: Ethics & compliance programs, data privacy policies, board diversity\n- Diversity certification status and certifying bodies\n\nThe survey takes approximately 20-30 minutes to complete and your responses will be used to:\n- Inform our supplier diversity reporting to stakeholders\n- Support our Scope 3 emissions calculations\n- Help us identify partnership opportunities for diverse suppliers\n\nPlease complete the survey via the Astra supplier portal by April 30, 2025. If you have questions, contact supplier.relations@vantagehealth.com.\n\nThank you for your partnership.\n\nVantage Health Systems\nSupplier Relations Team",
+    "attachments": [],
+    "status": "pending_response",
+    "tags": ["esg", "diversity", "survey", "astra", "annual"]
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"D:\\\\Python files\\\\supplier-command-center\")",
+      "Bash(uipro --help)",
+      "Bash(uipro init:*)",
+      "Bash(py -3.14 .claude/skills/ui-ux-pro-max/scripts/search.py \"B2B SaaS procurement supplier portal enterprise dashboard\" --design-system -p \"SupplierCommandCenter\" --persist)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest add button input label card form badge avatar separator --yes)",
+      "Bash(npx shadcn@latest add dialog dropdown-menu --yes)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(npx tsx:*)",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(kill %1)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3001)",
+      "Bash(findstr LISTENING)",
+      "Bash(findstr :5173)",
+      "Bash(taskkill /PID 22500 /F)",
+      "Bash(taskkill /PID 2928 /F)",
+      "Bash(cmd /c \"taskkill /PID 22500 /F\")",
+      "Bash(cmd /c \"taskkill /PID 2928 /F\")"
+    ]
+  }
+}
