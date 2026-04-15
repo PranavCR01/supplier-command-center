@@ -10,8 +10,8 @@ export default function SettingsPage() {
   const [resetting, setResetting] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setEmail(session.user.email ?? null)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setEmail(user.email ?? null)
     })
   }, [])
 

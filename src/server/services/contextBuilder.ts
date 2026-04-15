@@ -1,5 +1,29 @@
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { truncateToLimit } from './claude.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+interface AcmeReference {
+  company: string
+  description?: string
+  relationship?: string
+}
+
+interface AcmeProfile {
+  capabilities: string[]
+  industries_served: string[]
+  references: AcmeReference[]
+}
+
+// Capabilities, industries, and references are not stored in the DB.
+// Load them from the static supplier profile at startup.
+const acmeProfile: AcmeProfile = JSON.parse(
+  fs.readFileSync(join(__dirname, '../../../test_data/suppliers/acme_tech_solutions.json'), 'utf-8')
+)
 
 type RequestType = 'rfp' | 'rfq' | 'rfi' | 'compliance' | 'onboarding' | 'survey'
 
@@ -61,6 +85,25 @@ export async function buildUserMessage(
       s.website        ? `Website: ${s.website}`           : null,
       s.ein            ? `EIN: ${s.ein}`                   : null,
     ].filter(Boolean).join('\n'))
+  }
+
+  // Capabilities, industries, references — for RFP, RFQ, RFI, survey
+  if (['rfp', 'rfq', 'rfi', 'survey'].includes(request.type)) {
+    if (acmeProfile.capabilities.length > 0) {
+      parts.push('\n### Capabilities')
+      parts.push(acmeProfile.capabilities.map((c) => `- ${c}`).join('\n'))
+    }
+    if (acmeProfile.industries_served.length > 0) {
+      parts.push(`\nIndustries Served: ${acmeProfile.industries_served.join(', ')}`)
+    }
+    if (acmeProfile.references.length > 0) {
+      parts.push('\n### Client References & Case Studies')
+      parts.push(
+        acmeProfile.references.map((r) =>
+          `- ${r.company}: ${r.description ?? r.relationship ?? ''}`
+        ).join('\n')
+      )
+    }
   }
 
   // Certifications — only for relevant request types

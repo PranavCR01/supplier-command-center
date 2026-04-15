@@ -189,6 +189,16 @@
       "phone": "+1 (512) 334-9921",
       "relationship": "Cybersecurity & compliance since 2020",
       "can_contact": true
+    },
+    {
+      "company": "Regional Health Network (anonymized)",
+      "description": "Managed IT + HIPAA compliance for 4-facility health system, 600 endpoints, 99.9% uptime over 3 years",
+      "can_reference": true
+    },
+    {
+      "company": "Multi-site Medical Group (anonymized)",
+      "description": "EDR deployment and SOC monitoring for 12-location medical group, zero breaches in 2 years",
+      "can_reference": true
     }
   ]
 }

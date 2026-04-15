@@ -69,7 +69,8 @@ export default function ProfilePage() {
   const handleLoadDemo = async () => {
     setState({ kind: 'empty', seeding: true })
     await seedAcme()
-    await loadProfile()
+    // Full page reload so AppShell re-fetches company name for the sidebar
+    window.location.reload()
   }
 
   const handleStartFromScratch = async () => {
@@ -80,7 +81,8 @@ export default function ProfilePage() {
       user_id: session.user.id,
       company_name: 'My Company',
     })
-    await loadProfile()
+    // Full page reload so AppShell re-fetches company name for the sidebar
+    window.location.reload()
   }
 
   if (state.kind === 'loading') {
