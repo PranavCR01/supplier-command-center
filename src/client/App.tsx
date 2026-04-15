@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AppShell from '@/components/layout/AppShell'
 import LoginPage from '@/pages/auth/LoginPage'
 import SignupPage from '@/pages/auth/SignupPage'
+import ConfirmedPage from '@/pages/auth/ConfirmedPage'
 import ProfilePage from '@/pages/profile/ProfilePage'
 import InboxPage from '@/pages/inbox/InboxPage'
 import CompliancePage from '@/pages/compliance/CompliancePage'
@@ -24,6 +25,7 @@ export default function App() {
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/auth/confirmed" element={<ConfirmedPage />} />
 
           {/* Protected — wrapped in AppShell */}
           <Route element={<AppShell />}>
