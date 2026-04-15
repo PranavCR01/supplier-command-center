@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
+import { seedAcme } from '@/lib/seed'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,6 +22,7 @@ export default function SignupPage() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadingLabel, setLoadingLabel] = useState('Creating account…')
 
   const {
     register,
@@ -35,6 +37,9 @@ export default function SignupPage() {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        emailRedirectTo: window.location.origin + '/profile',
+      },
     })
 
     if (authError) {
@@ -54,6 +59,9 @@ export default function SignupPage() {
         setError(`Account created but profile setup failed: ${supplierError.message}`)
         return
       }
+
+      setLoadingLabel('Setting up your workspace…')
+      await seedAcme()
     } else if (authData.user && !authData.session) {
       // Email confirmation is required — supplier row will be created on first login
       setLoading(false)
@@ -135,7 +143,7 @@ export default function SignupPage() {
                 disabled={loading}
                 className="w-full bg-[#0369A1] hover:bg-[#0284C7] text-white font-semibold cursor-pointer transition-all duration-200"
               >
-                {loading ? 'Creating account…' : 'Create account'}
+                {loading ? loadingLabel : 'Create account'}
               </Button>
               <p className="text-sm text-[#334155]">
                 Already have an account?{' '}

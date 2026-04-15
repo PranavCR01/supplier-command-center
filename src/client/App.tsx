@@ -7,6 +7,7 @@ import ProfilePage from '@/pages/profile/ProfilePage'
 import InboxPage from '@/pages/inbox/InboxPage'
 import CompliancePage from '@/pages/compliance/CompliancePage'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
+import SettingsPage from '@/pages/settings/SettingsPage'
 import SeedPage from '@/pages/dev/SeedPage'
 
 const queryClient = new QueryClient({
@@ -30,7 +31,7 @@ export default function App() {
             <Route path="/inbox" element={<InboxPage />} />
             <Route path="/compliance" element={<CompliancePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/settings" element={<ComingSoon label="Settings" />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/dev/seed" element={<SeedPage />} />
           </Route>
 
@@ -39,14 +40,5 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
-  )
-}
-
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="p-8 flex flex-col items-center justify-center min-h-64 text-center">
-      <h2 className="text-lg font-semibold text-[#0F172A]">{label}</h2>
-      <p className="text-slate-400 text-sm mt-1">Coming in the next slice.</p>
-    </div>
   )
 }

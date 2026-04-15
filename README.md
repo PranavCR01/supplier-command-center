@@ -95,3 +95,9 @@ Run the schema in `docs/schema.sql` against your Supabase project via the SQL ed
 | `/inbox` (detail) | Request detail panel with AI draft generation |
 | `/compliance` | Compliance tracker — grouped by category with action notes |
 | `/dashboard` | Buyer dashboard — health score, per-buyer cards, compliance gaps |
+
+---
+
+## Disclaimer
+
+This project is a portfolio demonstration built for educational purposes. All company names, supplier data, buyer relationships, and procurement documents used in this application are entirely fictional and created solely for demonstration purposes. Any resemblance to real companies, entities, or procurement processes is coincidental. This application is not affiliated with, endorsed by, or connected to any real procurement platform or company. The AI-generated content in this application is produced by Anthropic's Claude API and should not be used as actual procurement advice.

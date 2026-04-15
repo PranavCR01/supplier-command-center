@@ -1,7 +1,17 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Building2, Inbox, ShieldCheck, BarChart3, Settings, LogOut, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface NavItem {
   label: string
@@ -26,6 +36,7 @@ const navItems = (pendingCount: number, criticalCount: number): NavItem[] => [
 
 export default function Sidebar({ companyName, pendingCount = 0, criticalCount = 0 }: SidebarProps) {
   const navigate = useNavigate()
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -70,13 +81,35 @@ export default function Sidebar({ companyName, pendingCount = 0, criticalCount =
       {/* Footer */}
       <div className="px-3 py-4 border-t border-white/10">
         <button
-          onClick={handleLogout}
+          onClick={() => setConfirmOpen(true)}
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-all duration-150 cursor-pointer"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           Sign out
         </button>
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sign out of Supplier Command Center?</DialogTitle>
+            <DialogDescription>
+              You'll need to sign in again to access your portal.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLogout}
+              className="bg-[#0369A1] hover:bg-[#0284C7] text-white"
+            >
+              Sign out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   )
 }
