@@ -27,15 +27,12 @@ export default function App() {
           {/* Protected — wrapped in AppShell */}
           <Route element={<AppShell />}>
             <Route path="/profile" element={<ProfilePage />} />
-            {/* Slice 2+ routes added here */}
             <Route path="/inbox" element={<InboxPage />} />
             <Route path="/compliance" element={<CompliancePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/settings" element={<ComingSoon label="Settings" />} />
+            <Route path="/dev/seed" element={<SeedPage />} />
           </Route>
-
-          {/* Dev only */}
-          {import.meta.env.DEV && <Route path="/dev/seed" element={<SeedPage />} />}
 
           <Route path="/" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<Navigate to="/profile" replace />} />
