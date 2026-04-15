@@ -21,11 +21,7 @@ function lookupRequiredBy(certName: string): string[] {
 }
 
 export async function seedAcme(): Promise<{ success: boolean; message: string }> {
-  if (import.meta.env.PROD) {
-    return { success: false, message: 'Seed only runs in development.' }
-  }
-
-  const { data: { session } } = await supabase.auth.getSession()
+const { data: { session } } = await supabase.auth.getSession()
   if (!session) return { success: false, message: 'Not authenticated.' }
 
   // Get or create supplier record
