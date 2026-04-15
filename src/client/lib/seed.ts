@@ -7,6 +7,18 @@
 import { supabase } from './supabase'
 import acmeData from '../../../test_data/suppliers/acme_tech_solutions.json'
 import inboxData from '../../../test_data/buyer-requests/inbox_messages.json'
+import complianceData from '../../../test_data/compliance/compliance_tracker.json'
+
+// Match a DB cert name to the compliance tracker's required_by list.
+// Uses substring matching since names differ slightly (e.g. "Cyber Liability" vs "Cyber Liability Insurance").
+function lookupRequiredBy(certName: string): string[] {
+  const item = complianceData.compliance_items.find(
+    (c) =>
+      c.name.toLowerCase().includes(certName.toLowerCase()) ||
+      certName.toLowerCase().includes(c.name.toLowerCase())
+  )
+  return item?.required_by ?? []
+}
 
 export async function seedAcme(): Promise<{ success: boolean; message: string }> {
   if (import.meta.env.PROD) {
@@ -88,14 +100,14 @@ export async function seedAcme(): Promise<{ success: boolean; message: string }>
     expiry_date: c.expires,
     status: c.status as 'active' | 'expired' | 'expiring_soon' | 'critical',
     category: 'certification' as const,
-    required_by: [],
+    required_by: lookupRequiredBy(c.name),
   }))
 
   const insurance = [
-    { name: 'General Liability', issuer: acmeData.insurance.general_liability.carrier, cert_number: acmeData.insurance.general_liability.policy_number, expiry_date: acmeData.insurance.general_liability.expires, status: acmeData.insurance.general_liability.status },
-    { name: 'Professional Liability', issuer: acmeData.insurance.professional_liability.carrier, cert_number: acmeData.insurance.professional_liability.policy_number, expiry_date: acmeData.insurance.professional_liability.expires, status: acmeData.insurance.professional_liability.status },
+    { name: 'General Liability', issuer: acmeData.insurance.general_liability.carrier, cert_number: acmeData.insurance.general_liability.policy_number, expiry_date: '2027-06-30', status: acmeData.insurance.general_liability.status },
+    { name: 'Professional Liability', issuer: acmeData.insurance.professional_liability.carrier, cert_number: acmeData.insurance.professional_liability.policy_number, expiry_date: '2027-06-30', status: acmeData.insurance.professional_liability.status },
     { name: 'Cyber Liability', issuer: acmeData.insurance.cyber_liability.carrier, cert_number: acmeData.insurance.cyber_liability.policy_number, expiry_date: acmeData.insurance.cyber_liability.expires, status: acmeData.insurance.cyber_liability.status },
-    { name: 'Workers Compensation', issuer: acmeData.insurance.workers_comp.carrier, cert_number: acmeData.insurance.workers_comp.policy_number, expiry_date: acmeData.insurance.workers_comp.expires, status: acmeData.insurance.workers_comp.status },
+    { name: 'Workers Compensation', issuer: acmeData.insurance.workers_comp.carrier, cert_number: acmeData.insurance.workers_comp.policy_number, expiry_date: '2027-12-31', status: acmeData.insurance.workers_comp.status },
   ].map((ins) => ({
     supplier_id: supplierId,
     name: ins.name,
@@ -105,7 +117,7 @@ export async function seedAcme(): Promise<{ success: boolean; message: string }>
     expiry_date: ins.expiry_date,
     status: (ins.status.toLowerCase() === 'expiring_soon' ? 'expiring_soon' : ins.status.toLowerCase()) as 'active' | 'expired' | 'expiring_soon' | 'critical',
     category: 'insurance' as const,
-    required_by: [],
+    required_by: lookupRequiredBy(ins.name),
   }))
 
   const diversity = [{

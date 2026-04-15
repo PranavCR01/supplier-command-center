@@ -1,5 +1,5 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2025-04-08 | Phase: Slice 2 — Smart Inbox
+> Last updated: 2025-04-08 | Phase: Slice 4 — Compliance + Dashboard + Deploy
 
 ## What we're building
 AI-powered supplier portal — the "other side" of Valorant's Astra procurement platform.
@@ -67,9 +67,9 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 
 ## Build slices
 - [x] Slice 1 (Days 1–4): Auth + profile CRUD + app shell ✓
-- [ ] Slice 2 (Days 5–9): Smart inbox + request ingestion + PDF parsing
-- [ ] Slice 3 (Days 10–15): AI response generator + streaming
-- [ ] Slice 4 (Days 16–20): Compliance tracker + dashboard + deploy
+- [x] Slice 2 (Days 5–9): Smart inbox + request ingestion + PDF parsing ✓
+- [x] Slice 3 (Days 10–15): AI response generator + streaming ✓
+- [x] Slice 4 (Days 16–20): Compliance tracker + dashboard + deploy ✓
 
 ## Slice 2 — what to build next
 Files to create:
@@ -93,6 +93,13 @@ are visible, filterable by type and priority, with deadline countdown.
 | 2025-04-07 | claude-sonnet-4-6 | Best speed/quality for streaming |
 | 2025-04-07 | py -3.14 for scripts | Multi-version Windows, other project uses older |
 | 2025-04-08 | Disable Supabase email confirm | Dev/demo project, no email friction needed |
+| 2025-04-08 | react-markdown + remark-gfm for draft rendering | GFM needed for table parsing; prose plugin for typography |
+| 2025-04-08 | claude-haiku-4-5-20251001 for AI drafts | 10x cheaper than Sonnet; quality sufficient for structured procurement drafts |
+| 2025-04-08 | Prompt caching via cache_control ephemeral on system prompt | System prompt billed once per 5-min TTL window, not per call |
+| 2025-04-08 | SSE streaming via fetch not EventSource | EventSource doesn't support custom headers; Bearer auth requires fetch + ReadableStream |
+| 2025-04-08 | Minimal context per request type via contextBuilder.ts | Never send full profile; select only certs/contacts/buyers relevant to the request type |
+| 2025-04-08 | tsconfig.server.json uses NodeNext not CommonJS | package.json has "type":"module" + server uses import.meta.url — CommonJS conflicts without extra workaround |
+| 2025-04-08 | required_by seeded from compliance_tracker.json via fuzzy name match | Compliance tracker names differ slightly from cert names; substring match resolves all 8 items |
 
 ## Updating this file
 Check off slices when done. Add decisions. Update phase at top.
