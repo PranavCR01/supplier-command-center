@@ -6,6 +6,7 @@
 
 import { supabase } from './supabase'
 import acmeData from '../../../test_data/suppliers/acme_tech_solutions.json'
+import inboxData from '../../../test_data/buyer-requests/inbox_messages.json'
 
 export async function seedAcme(): Promise<{ success: boolean; message: string }> {
   if (import.meta.env.PROD) {
@@ -132,6 +133,27 @@ export async function seedAcme(): Promise<{ success: boolean; message: string }>
       since_date: b.since,
       annual_spend: b.annual_spend,
       status: b.status as 'preferred' | 'approved' | 'onboarding' | 'inactive',
+    }))
+  )
+
+  // Seed inbox requests
+  await supabase.from('inbox_requests').delete().eq('supplier_id', supplierId)
+  await supabase.from('inbox_requests').insert(
+    inboxData.map((msg) => ({
+      supplier_id:   supplierId,
+      type:          msg.type,
+      priority:      msg.priority,
+      deadline:      msg.deadline,
+      received_at:   msg.received_at,
+      from_buyer:    msg.from.buyer_name,
+      from_contact:  msg.from.contact_name,
+      from_email:    msg.from.contact_email,
+      from_platform: msg.from.platform,
+      subject:       msg.subject,
+      body:          msg.body,
+      status:        msg.status,
+      tags:          msg.tags,
+      attachments:   msg.attachments,
     }))
   )
 

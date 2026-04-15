@@ -1,5 +1,5 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2025-04-07 | Phase: Slice 1 — Foundation
+> Last updated: 2025-04-08 | Phase: Slice 2 — Smart Inbox
 
 ## What we're building
 AI-powered supplier portal — the "other side" of Valorant's Astra procurement platform.
@@ -14,6 +14,11 @@ Demo target: Biju Mohan, Co-Founder of Valorant (job application project).
 | Database | Supabase (PostgreSQL + Auth + Storage + RLS) |
 | AI | Claude API — claude-sonnet-4-6, streaming, system prompt cached |
 | Deploy | Vercel (FE) + Railway (BE) |
+
+## Design system
+Font: Plus Jakarta Sans | Sidebar: Navy #0F172A | CTA: Blue #0369A1 | BG: Slate
+Badges: emerald=active, amber=expiring_soon, red=expired/critical
+Full spec: design-system/suppliercommandcenter/MASTER.md — read before ANY UI work
 
 ## Non-negotiables
 - TypeScript strict — no `any` types
@@ -34,8 +39,8 @@ src/server/          → Express backend
   prompts/procurement.system.md  → AI brain, loaded once at startup
   services/claude.ts → Claude API wrapper (streaming)
 src/types/index.ts   → all shared TypeScript types
-design-system/MASTER.md → read before ANY UI work
-test-data/           → synthetic data for development
+design-system/suppliercommandcenter/MASTER.md → read before ANY UI work
+test-data/           → synthetic data (suppliers/, buyer-requests/, documents/, compliance/)
 docs/schema.sql      → full DB schema
 ```
 
@@ -44,13 +49,13 @@ Tables: `suppliers` `supplier_contacts` `certifications` `buyer_relationships` `
 All have RLS — users see only their own data via `user_id`. Full schema in `docs/schema.sql`.
 
 ## AI rules
-- One system prompt: `src/server/prompts/procurement.system.md` — cached at startup, injected into every call
+- One system prompt: `src/server/prompts/procurement.system.md` — cached at startup
 - All responses stream via SSE — never wait for full completion
-- Never fabricate data — if supplier profile is missing info, flag it, don't invent
+- Never fabricate data — flag missing info, don't invent
 - Prompt = system prompt + supplier profile JSON + document text + task instruction
 
 ## Claude Code session rules
-1. Read this file + `design-system/MASTER.md` before any UI work
+1. Read this file + `design-system/suppliercommandcenter/MASTER.md` before any UI work
 2. Use `/plan` before writing code — think first, always
 3. Use `/compact` every ~30 mins to save tokens
 4. One task per session — finish, commit, done
@@ -58,13 +63,26 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 6. Python: use `py -3.14` not `python` (Windows multi-version setup)
 
 ## Opening message for every Claude Code session
-"Read CLAUDE.md. We're on Slice [N]. Task today: [specific task]. Check design-system/MASTER.md before writing any UI."
+"Read CLAUDE.md. We're on Slice [N]. Task today: [specific task]. Check design-system/suppliercommandcenter/MASTER.md before writing any UI."
 
-## Current slices
-- [ ] Slice 1 (Days 1–4): Auth + profile CRUD + app shell → see `slice-1-brief.md`
+## Build slices
+- [x] Slice 1 (Days 1–4): Auth + profile CRUD + app shell ✓
 - [ ] Slice 2 (Days 5–9): Smart inbox + request ingestion + PDF parsing
 - [ ] Slice 3 (Days 10–15): AI response generator + streaming
 - [ ] Slice 4 (Days 16–20): Compliance tracker + dashboard + deploy
+
+## Slice 2 — what to build next
+Files to create:
+- src/server/routes/requests.ts       → CRUD for inbox_requests
+- src/client/pages/inbox/InboxPage.tsx → main inbox list view
+- src/client/components/inbox/RequestCard.tsx → single request card
+- src/client/components/inbox/RequestDetail.tsx → expanded view
+- src/client/components/inbox/PriorityBadge.tsx → urgent/high/medium/low
+- src/client/components/inbox/TypeBadge.tsx → rfp/rfq/compliance/onboarding
+- src/client/lib/seed.ts → extend to also seed inbox_messages.json
+
+Done when: All 5 test requests from test-data/buyer-requests/inbox_messages.json
+are visible, filterable by type and priority, with deadline countdown.
 
 ## Decisions log
 | Date | Decision | Reason |
@@ -74,6 +92,7 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 | 2025-04-07 | Vertical slices | Every slice is independently demo-able |
 | 2025-04-07 | claude-sonnet-4-6 | Best speed/quality for streaming |
 | 2025-04-07 | py -3.14 for scripts | Multi-version Windows, other project uses older |
+| 2025-04-08 | Disable Supabase email confirm | Dev/demo project, no email friction needed |
 
 ## Updating this file
 Check off slices when done. Add decisions. Update phase at top.

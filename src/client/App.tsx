@@ -4,6 +4,7 @@ import AppShell from '@/components/layout/AppShell'
 import LoginPage from '@/pages/auth/LoginPage'
 import SignupPage from '@/pages/auth/SignupPage'
 import ProfilePage from '@/pages/profile/ProfilePage'
+import InboxPage from '@/pages/inbox/InboxPage'
 import SeedPage from '@/pages/dev/SeedPage'
 
 const queryClient = new QueryClient({
@@ -25,7 +26,7 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route path="/profile" element={<ProfilePage />} />
             {/* Slice 2+ routes added here */}
-            <Route path="/inbox" element={<ComingSoon label="Smart Inbox" />} />
+            <Route path="/inbox" element={<InboxPage />} />
             <Route path="/compliance" element={<ComingSoon label="Compliance Tracker" />} />
             <Route path="/dashboard" element={<ComingSoon label="Buyer Dashboard" />} />
             <Route path="/settings" element={<ComingSoon label="Settings" />} />

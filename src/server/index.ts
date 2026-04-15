@@ -4,6 +4,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import suppliersRouter from './routes/suppliers'
+import aiRouter from './routes/ai'
 import { errorHandler } from './middleware/error'
 
 const app = express()
@@ -17,6 +18,7 @@ app.use(express.json())
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 
 app.use('/api/suppliers', suppliersRouter)
+app.use('/api/ai', aiRouter)
 
 app.use(errorHandler)
 

@@ -20,7 +20,9 @@
       "Bash(taskkill /PID 22500 /F)",
       "Bash(taskkill /PID 2928 /F)",
       "Bash(cmd /c \"taskkill /PID 22500 /F\")",
-      "Bash(cmd /c \"taskkill /PID 2928 /F\")"
+      "Bash(cmd /c \"taskkill /PID 2928 /F\")",
+      "Bash(npx tsc:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }

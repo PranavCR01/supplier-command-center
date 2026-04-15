@@ -15,6 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.89.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -23,6 +24,7 @@
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/supabase-js": "^2.43.0",
+    "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.40.0",
     "axios": "^1.7.2",
     "class-variance-authority": "^0.7.1",
@@ -38,7 +40,9 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.72.1",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^6.23.1",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.3.0",
     "zod": "^3.25.76"
   },
