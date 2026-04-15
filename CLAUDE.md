@@ -1,10 +1,11 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2025-04-08 | Phase: Slice 4 — Compliance + Dashboard + Deploy
+> Last updated: 2025-04-08 | Phase: Post-launch — Polish & Demo Prep
 
 ## What we're building
 AI-powered supplier portal — the "other side" of Valorant's Astra procurement platform.
 Suppliers manage buyer relationships, respond to RFPs, track compliance. All AI-powered.
 Demo target: Biju Mohan, Co-Founder of Valorant (job application project).
+Live URL: https://supplier-command-center.vercel.app
 
 ## Stack
 | Layer | Tech |
@@ -92,14 +93,21 @@ are visible, filterable by type and priority, with deadline countdown.
 | 2025-04-07 | Vertical slices | Every slice is independently demo-able |
 | 2025-04-07 | claude-sonnet-4-6 | Best speed/quality for streaming |
 | 2025-04-07 | py -3.14 for scripts | Multi-version Windows, other project uses older |
-| 2025-04-08 | Disable Supabase email confirm | Dev/demo project, no email friction needed |
-| 2025-04-08 | react-markdown + remark-gfm for draft rendering | GFM needed for table parsing; prose plugin for typography |
-| 2025-04-08 | claude-haiku-4-5-20251001 for AI drafts | 10x cheaper than Sonnet; quality sufficient for structured procurement drafts |
+| 2025-04-08 | Email confirmation kept ON | Real auth flow; handle with empty state + Load demo data button on first login |
+| 2025-04-08 | react-markdown + remark-gfm | GFM needed for table parsing; prose plugin for typography |
+| 2025-04-08 | Haiku over Sonnet for drafts | 10x cheaper than Sonnet; quality sufficient for structured procurement drafts |
 | 2025-04-08 | Prompt caching via cache_control ephemeral on system prompt | System prompt billed once per 5-min TTL window, not per call |
 | 2025-04-08 | SSE streaming via fetch not EventSource | EventSource doesn't support custom headers; Bearer auth requires fetch + ReadableStream |
 | 2025-04-08 | Minimal context per request type via contextBuilder.ts | Never send full profile; select only certs/contacts/buyers relevant to the request type |
 | 2025-04-08 | tsconfig.server.json uses NodeNext not CommonJS | package.json has "type":"module" + server uses import.meta.url — CommonJS conflicts without extra workaround |
 | 2025-04-08 | required_by seeded from compliance_tracker.json via fuzzy name match | Compliance tracker names differ slightly from cert names; substring match resolves all 8 items |
+| 2025-04-08 | window.location.reload() after seed | Ensures AppShell re-initializes and sidebar picks up new company name |
+| 2025-04-08 | TSX in production on Railway | Avoids compiled JS build step complexity; tsx runs TypeScript directly |
+
+## Known issues (fix before demo)
+- [x] Sidebar "Loading..." persists after seed until reload (fix: window.location.reload() after seedAcme)
+- [x] Settings shows cached email from previous session (fix: fresh supabase.auth.getUser() on mount)
+- [x] AI draft shows [FLAGGED] placeholders for missing case studies (fix: update system prompt + seed data)
 
 ## Updating this file
 Check off slices when done. Add decisions. Update phase at top.
