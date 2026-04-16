@@ -2,7 +2,7 @@
 
 The supplier-side complement to Valorant's Astra procurement platform.
 
-![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white&labelColor=20232A) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite&logoColor=white) ![Tailwind](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat&logo=tailwindcss&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat&logo=supabase&logoColor=white) ![Anthropic](https://img.shields.io/badge/Anthropic-Claude%20Haiku-D97706?style=flat) ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white&labelColor=20232A) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite&logoColor=white) ![Tailwind](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat&logo=tailwindcss&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat&logo=supabase&logoColor=white) ![Anthropic](https://img.shields.io/badge/Anthropic-Claude%20Haiku-D97706?style=flat) ![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=flat&logo=node.js&logoColor=white) ![Deployed](https://img.shields.io/badge/Deployed-Vercel%20%2B%20Railway-000000?style=flat&logo=vercel&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
 **Live demo:** https://supplier-command-center.vercel.app
 
@@ -23,14 +23,39 @@ Astra creates faster, smarter buyers. Supplier Command Center creates suppliers 
 **Supplier Profile Hub**
 Structured company profile: certifications, insurance, diversity classifications, buyer relationships, and key contacts — all in one place. The source of truth that feeds AI-generated responses.
 
-**Smart Inbox**
+**Smart Inbox with priority filtering**
 All buyer requests in a single view — RFPs, RFQs, compliance notices, onboarding checklists, surveys. Filterable by type and priority, with live deadline countdowns and a priority summary bar.
 
-**AI Response Generator**
+**AI Response Generator (streaming, Claude Haiku, prompt caching)**
 One click drafts a structured response using the supplier's actual profile data. Built on the Claude API with SSE streaming, prompt caching, and request-type-aware context selection. Renders formatted markdown with tables and headers. 1,500 token cap keeps responses concise and cost-controlled.
 
-**Compliance Tracker and Buyer Dashboard**
-Real-time compliance health across certifications, insurance, and diversity credentials — status computed from expiry dates, not stale DB fields. Buyer relationship cards show active request counts and per-buyer compliance gaps.
+**RFP Gap Analyzer (profile vs requirements)**
+Automatically compares an incoming RFP or RFQ against the supplier's certifications and capabilities. Surfaces strengths and gaps before drafting so the response addresses weaknesses head-on.
+
+**Buyer Tone Insight (urgency, sentiment, risk)**
+Every incoming message is analyzed for urgency level, buyer sentiment, and relationship risk. Displayed as labeled pills below the message body — no action required, always visible.
+
+**ESG Survey Auto-complete**
+Diversity and ESG surveys are auto-filled from stored certifications, company info, and diversity classifications. One click generates draft answers; the supplier reviews and copies to clipboard.
+
+**Compliance Tracker with expiry alerts**
+Real-time compliance health across certifications, insurance, and diversity credentials — status computed from expiry dates, not stale DB fields.
+
+**Buyer Relationship Dashboard**
+Buyer relationship cards show active request counts, annual spend, and per-buyer compliance gaps.
+
+---
+
+## How it works
+
+A supplier signs up, loads their profile once — certifications, insurance, capabilities, rate card, buyer relationships. From that point:
+
+- Every incoming buyer request lands in the Smart Inbox, automatically analyzed for urgency and relationship risk
+- RFP and RFQ requests get a profile match analysis showing strengths and gaps before drafting
+- One click generates a streaming AI draft response using the supplier's actual profile data — no fabrication, no generic templates
+- ESG and diversity surveys are auto-completed from stored certifications
+- The compliance tracker monitors all certification and insurance expiry dates in real time
+- The buyer dashboard surfaces relationship health, active requests, and compliance gaps per buyer
 
 ---
 

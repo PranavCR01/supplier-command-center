@@ -1,5 +1,5 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2025-04-08 | Phase: Post-launch — Polish & Demo Prep
+> Last updated: 2025-04-15 | Phase: Post-launch — Demo Prep
 
 ## What we're building
 AI-powered supplier portal — the "other side" of Valorant's Astra procurement platform.
@@ -94,7 +94,7 @@ are visible, filterable by type and priority, with deadline countdown.
 | 2025-04-07 | claude-sonnet-4-6 | Best speed/quality for streaming |
 | 2025-04-07 | py -3.14 for scripts | Multi-version Windows, other project uses older |
 | 2025-04-08 | Email confirmation kept ON | Real auth flow; handle with empty state + Load demo data button on first login |
-| 2025-04-08 | react-markdown + remark-gfm | GFM needed for table parsing; prose plugin for typography |
+| 2025-04-08 | react-markdown + remark-gfm | Proper table rendering in AI draft panel; prose plugin for typography |
 | 2025-04-08 | Haiku over Sonnet for drafts | 10x cheaper than Sonnet; quality sufficient for structured procurement drafts |
 | 2025-04-08 | Prompt caching via cache_control ephemeral on system prompt | System prompt billed once per 5-min TTL window, not per call |
 | 2025-04-08 | SSE streaming via fetch not EventSource | EventSource doesn't support custom headers; Bearer auth requires fetch + ReadableStream |
@@ -103,11 +103,25 @@ are visible, filterable by type and priority, with deadline countdown.
 | 2025-04-08 | required_by seeded from compliance_tracker.json via fuzzy name match | Compliance tracker names differ slightly from cert names; substring match resolves all 8 items |
 | 2025-04-08 | window.location.reload() after seed | Ensures AppShell re-initializes and sidebar picks up new company name |
 | 2025-04-08 | TSX in production on Railway | Avoids compiled JS build step complexity; tsx runs TypeScript directly |
+| 2025-04-08 | GapAnalysisCard returns null for non-RFP types | Avoid unnecessary API calls for compliance/survey requests |
+| 2025-04-08 | ToneInsightCard cached by request ID via useRef | No re-fetch on panel reopen |
+| 2025-04-08 | ESG auto-complete from diversity profile data | Maps supplier certs to survey answers automatically |
 
 ## Known issues (fix before demo)
 - [x] Sidebar "Loading..." persists after seed until reload (fix: window.location.reload() after seedAcme)
 - [x] Settings shows cached email from previous session (fix: fresh supabase.auth.getUser() on mount)
 - [x] AI draft shows [FLAGGED] placeholders for missing case studies (fix: update system prompt + seed data)
+
+## AI Features built
+- AI Response Generator — streaming RFP/RFQ drafts via SSE
+- RFP Gap Analyzer — profile vs requirements analysis
+- Tone Insight — urgency/sentiment/risk on buyer messages
+- ESG Survey Auto-complete — diversity cert mapping
+
+## Live URLs
+- Frontend: https://supplier-command-center.vercel.app
+- Backend: https://supplier-command-center-production.up.railway.app
+- Repo: https://github.com/PranavCR01/supplier-command-center
 
 ## Updating this file
 Check off slices when done. Add decisions. Update phase at top.
