@@ -27,6 +27,13 @@ const URGENCY_CLASSES: Record<Urgency, string> = {
   critical: 'bg-red-100 text-red-700',
 }
 
+const URGENCY_LABELS: Record<Urgency, string> = {
+  low: 'Low urgency',
+  medium: 'Medium urgency',
+  high: 'High urgency',
+  critical: 'Critical',
+}
+
 const SENTIMENT_CLASSES: Record<Sentiment, string> = {
   positive: 'bg-emerald-100 text-emerald-700',
   neutral: 'bg-slate-100 text-slate-600',
@@ -34,10 +41,23 @@ const SENTIMENT_CLASSES: Record<Sentiment, string> = {
   demanding: 'bg-red-100 text-red-700',
 }
 
+const SENTIMENT_LABELS: Record<Sentiment, string> = {
+  positive: 'Positive',
+  neutral: 'Neutral',
+  concerned: 'Concerned',
+  demanding: 'Demanding',
+}
+
 const RISK_CLASSES: Record<Risk, string> = {
   low: 'bg-emerald-100 text-emerald-700',
   medium: 'bg-amber-100 text-amber-700',
   high: 'bg-red-100 text-red-700',
+}
+
+const RISK_LABELS: Record<Risk, string> = {
+  low: 'Low risk',
+  medium: 'Medium risk',
+  high: 'High risk',
 }
 
 function isValidResult(v: unknown): v is ToneResult {
@@ -108,31 +128,42 @@ export default function ToneInsightCard({ request }: Props) {
   const risk = result.relationship_risk in RISK_CLASSES ? result.relationship_risk : 'low'
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 bg-slate-50 border border-slate-100 rounded-lg">
-      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide shrink-0">
-        AI Insight
-      </span>
+    <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 space-y-2">
+      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+        Message analysis
+      </p>
 
-      <div className="flex flex-wrap gap-1.5">
-        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${URGENCY_CLASSES[urgency]}`}>
-          {urgency}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        <span className="flex items-center gap-1.5">
+          <span className="text-[11px] text-slate-500 font-medium">Urgency:</span>
+          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${URGENCY_CLASSES[urgency]}`}>
+            {URGENCY_LABELS[urgency]}
+          </span>
         </span>
-        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${SENTIMENT_CLASSES[sentiment]}`}>
-          {sentiment}
+
+        <span className="flex items-center gap-1.5">
+          <span className="text-[11px] text-slate-500 font-medium">Tone:</span>
+          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${SENTIMENT_CLASSES[sentiment]}`}>
+            {SENTIMENT_LABELS[sentiment]}
+          </span>
         </span>
-        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${RISK_CLASSES[risk]}`}>
-          {risk} risk
+
+        <span className="flex items-center gap-1.5">
+          <span className="text-[11px] text-slate-500 font-medium">Risk:</span>
+          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${RISK_CLASSES[risk]}`}>
+            {RISK_LABELS[risk]}
+          </span>
         </span>
       </div>
 
-      <p className="text-[11px] italic text-slate-500 truncate min-w-0 flex-1">
+      <p className="text-[11px] italic text-slate-500 leading-relaxed">
         {result.recommended_tone}
       </p>
 
       {result.key_deadline && (
-        <span className="text-[11px] font-semibold text-orange-600 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          {result.key_deadline}
-        </span>
+        <p className="text-[11px] font-semibold text-orange-600">
+          Deadline: {result.key_deadline}
+        </p>
       )}
     </div>
   )
