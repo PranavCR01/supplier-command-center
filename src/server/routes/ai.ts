@@ -1,7 +1,7 @@
 import { Router, Response } from 'express'
 import { createClient } from '@supabase/supabase-js'
 import { requireAuth, AuthRequest } from '../middleware/auth.js'
-import { streamDraft } from '../services/claude.js'
+import { streamDraft, callJson } from '../services/claude.js'
 import { buildUserMessage } from '../services/contextBuilder.js'
 
 const router = Router()
@@ -119,6 +119,115 @@ router.post('/draft/:requestId', requireAuth, async (req: AuthRequest, res: Resp
       res.status(500).json({ error: 'Internal server error' })
     }
     res.end()
+  }
+})
+
+const GAP_SYSTEM_PROMPT =
+  'You are a procurement analyst. Analyze RFP requirements against a supplier profile. Return ONLY valid JSON, no other text.'
+
+const TONE_SYSTEM_PROMPT =
+  'You are a procurement communication analyst. Analyze buyer messages. Return ONLY valid JSON, no other text.'
+
+// POST /api/ai/analyze-gap — gap analysis for rfp/rfq/onboarding
+router.post('/analyze-gap', requireAuth, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { requestId } = req.body as { requestId: string }
+
+    const { data: supplier } = await supabase
+      .from('suppliers')
+      .select('id')
+      .eq('user_id', req.userId)
+      .single()
+
+    if (!supplier) {
+      res.status(404).json({ error: 'Supplier not found' })
+      return
+    }
+
+    const [{ data: inboxRequest }, { data: certs }] = await Promise.all([
+      supabase
+        .from('inbox_requests')
+        .select('type, body')
+        .eq('id', requestId)
+        .eq('supplier_id', supplier.id)
+        .single(),
+      supabase
+        .from('certifications')
+        .select('name, status')
+        .eq('supplier_id', supplier.id),
+    ])
+
+    if (!inboxRequest) {
+      res.status(404).json({ error: 'Request not found' })
+      return
+    }
+
+    const certList = (certs ?? []).map((c) => `${c.name} (${c.status})`).join(', ')
+
+    const userMessage =
+      `Request type: ${inboxRequest.type}\n` +
+      `Request body (first 1500 chars): ${(inboxRequest.body ?? '').slice(0, 1500)}\n` +
+      `Supplier certifications: ${certList || 'none'}\n` +
+      `Supplier capabilities: []\n\n` +
+      `Return JSON: {"strengths":["string (max 3, one sentence each)"],"gaps":["string (max 3, one sentence each)"]}`
+
+    const raw = await callJson(GAP_SYSTEM_PROMPT, userMessage, 300)
+    const cleaned = raw.replace(/```json\n?|\n?```/g, '').trim()
+    const parsed = JSON.parse(cleaned) as { strengths: string[]; gaps: string[] }
+
+    res.json(parsed)
+  } catch {
+    res.status(500).json({ error: 'Analysis failed' })
+  }
+})
+
+// POST /api/ai/analyze-tone — communication tone analysis
+router.post('/analyze-tone', requireAuth, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { requestId } = req.body as { requestId: string }
+
+    const { data: supplier } = await supabase
+      .from('suppliers')
+      .select('id')
+      .eq('user_id', req.userId)
+      .single()
+
+    if (!supplier) {
+      res.status(404).json({ error: 'Supplier not found' })
+      return
+    }
+
+    const { data: inboxRequest } = await supabase
+      .from('inbox_requests')
+      .select('subject, type, body')
+      .eq('id', requestId)
+      .eq('supplier_id', supplier.id)
+      .single()
+
+    if (!inboxRequest) {
+      res.status(404).json({ error: 'Request not found' })
+      return
+    }
+
+    const userMessage =
+      `Subject: ${inboxRequest.subject ?? ''}\n` +
+      `Type: ${inboxRequest.type}\n` +
+      `Message: ${(inboxRequest.body ?? '').slice(0, 800)}\n\n` +
+      `Return JSON: {"urgency":"low"|"medium"|"high"|"critical","sentiment":"positive"|"neutral"|"concerned"|"demanding","relationship_risk":"low"|"medium"|"high","recommended_tone":"string (max 12 words)","key_deadline":"string or null"}`
+
+    const raw = await callJson(TONE_SYSTEM_PROMPT, userMessage, 300)
+    const cleaned = raw.replace(/```json\n?|\n?```/g, '').trim()
+    const parsed = JSON.parse(cleaned) as {
+      urgency: string
+      sentiment: string
+      relationship_risk: string
+      recommended_tone: string
+      key_deadline: string | null
+    }
+
+    res.json(parsed)
+  } catch {
+    res.status(500).json({ error: 'Analysis failed' })
   }
 })
 

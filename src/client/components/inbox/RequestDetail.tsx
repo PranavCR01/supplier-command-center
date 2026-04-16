@@ -3,6 +3,8 @@ import { format, parseISO } from 'date-fns'
 import TypeBadge from './TypeBadge'
 import PriorityBadge from './PriorityBadge'
 import DraftPanel from './DraftPanel'
+import GapAnalysisCard from './GapAnalysisCard'
+import ToneInsightCard from './ToneInsightCard'
 import type { InboxRequest } from '../../../types'
 
 interface Props {
@@ -150,6 +152,12 @@ export default function RequestDetail({ request, onClose }: Props) {
               {request.body ?? '(No message body)'}
             </div>
           </div>
+
+          {/* Tone insight — renders below message body once AI result arrives */}
+          <ToneInsightCard request={request} />
+
+          {/* Gap analysis — only for rfp/rfq/onboarding, above draft panel */}
+          <GapAnalysisCard request={request} />
 
           {/* AI Draft */}
           <DraftPanel requestId={request.id} />

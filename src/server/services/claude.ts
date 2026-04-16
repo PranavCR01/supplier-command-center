@@ -27,6 +27,30 @@ export function truncateToLimit(text: string): { text: string; truncated: boolea
   }
 }
 
+// One-shot JSON call — no streaming, used for analysis endpoints
+export async function callJson(
+  systemPrompt: string,
+  userMessage: string,
+  maxTokens = 300
+): Promise<string> {
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: maxTokens,
+    system: [
+      {
+        type: 'text',
+        text: systemPrompt,
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: [{ role: 'user', content: userMessage }],
+  })
+
+  const block = message.content[0]
+  if (block.type !== 'text') throw new Error('Unexpected response type')
+  return block.text
+}
+
 export async function streamDraft(
   userMessage: string,
   onChunk: (text: string) => void
