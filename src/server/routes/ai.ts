@@ -231,4 +231,70 @@ router.post('/analyze-tone', requireAuth, async (req: AuthRequest, res: Response
   }
 })
 
+const SURVEY_SYSTEM_PROMPT =
+  'You are a procurement compliance assistant. Help suppliers complete ESG and diversity surveys using their profile data. Return ONLY valid JSON, no other text.'
+
+// POST /api/ai/auto-complete-survey — ESG/diversity survey auto-fill
+router.post('/auto-complete-survey', requireAuth, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { requestId } = req.body as { requestId: string }
+
+    const { data: supplier } = await supabase
+      .from('suppliers')
+      .select('id, company_name, headquarters, employees, founded_year')
+      .eq('user_id', req.userId)
+      .single()
+
+    if (!supplier) {
+      res.status(404).json({ error: 'Supplier not found' })
+      return
+    }
+
+    const [{ data: inboxRequest }, { data: certs }] = await Promise.all([
+      supabase
+        .from('inbox_requests')
+        .select('body')
+        .eq('id', requestId)
+        .eq('supplier_id', supplier.id)
+        .single(),
+      supabase
+        .from('certifications')
+        .select('name, issuer, expiry_date')
+        .eq('supplier_id', supplier.id)
+        .eq('category', 'diversity'),
+    ])
+
+    if (!inboxRequest) {
+      res.status(404).json({ error: 'Request not found' })
+      return
+    }
+
+    const certLines = (certs ?? [])
+      .map((c) => `- ${c.name} (issuer: ${c.issuer ?? 'N/A'}, expires: ${c.expiry_date ?? 'N/A'})`)
+      .join('\n')
+
+    const userMessage =
+      `Survey questions/body: ${(inboxRequest.body ?? '').slice(0, 800)}\n` +
+      `Supplier diversity certifications:\n${certLines || 'none'}\n` +
+      `Company: ${supplier.company_name}, HQ: ${supplier.headquarters ?? 'N/A'}, ` +
+      `Employees: ${supplier.employees ?? 'N/A'}, Founded: ${supplier.founded_year ?? 'N/A'}\n\n` +
+      `Return JSON array of answered questions:\n` +
+      `[{ "question": "string", "answer": "string" }]\n` +
+      `Max 8 items. Keep answers concise, professional, factual. Only answer what can be supported by the profile data provided.`
+
+    const raw = await callJson(SURVEY_SYSTEM_PROMPT, userMessage, 800)
+    const cleaned = raw.replace(/```json\n?|\n?```/g, '').trim()
+    const parsed = JSON.parse(cleaned) as { question: string; answer: string }[]
+
+    if (!Array.isArray(parsed)) {
+      res.status(500).json({ error: 'Invalid response format' })
+      return
+    }
+
+    res.json({ answers: parsed })
+  } catch {
+    res.status(500).json({ error: 'Auto-complete failed' })
+  }
+})
+
 export default router

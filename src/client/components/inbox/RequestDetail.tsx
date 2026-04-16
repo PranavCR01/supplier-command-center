@@ -5,6 +5,7 @@ import PriorityBadge from './PriorityBadge'
 import DraftPanel from './DraftPanel'
 import GapAnalysisCard from './GapAnalysisCard'
 import ToneInsightCard from './ToneInsightCard'
+import SurveyAutoComplete from './SurveyAutoComplete'
 import type { InboxRequest } from '../../../types'
 
 interface Props {
@@ -155,6 +156,9 @@ export default function RequestDetail({ request, onClose }: Props) {
 
           {/* Tone insight — renders below message body once AI result arrives */}
           <ToneInsightCard request={request} />
+
+          {/* Survey auto-complete — only for survey type */}
+          <SurveyAutoComplete request={request} />
 
           {/* Gap analysis — only for rfp/rfq/onboarding, above draft panel */}
           <GapAnalysisCard request={request} />
