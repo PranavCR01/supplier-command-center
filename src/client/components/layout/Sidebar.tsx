@@ -47,7 +47,18 @@ export default function Sidebar({ companyName, pendingCount = 0, criticalCount =
     <aside className="flex flex-col w-64 min-h-screen bg-[#0F172A] text-white shrink-0">
       {/* Brand */}
       <div className="px-6 py-5 border-b border-white/10">
-        <img src="/favicon.svg" alt="Supplier Command Center" className="w-7 h-7 mb-3" />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-7 h-7 mb-3" aria-label="Supplier Command Center">
+          <circle cx="16" cy="16" r="5" fill="#0EA5E9"/>
+          <circle cx="16" cy="6" r="3" fill="#38BDF8"/>
+          <circle cx="24" cy="22" r="3" fill="#38BDF8"/>
+          <circle cx="8" cy="22" r="3" fill="#38BDF8"/>
+          <line x1="16" y1="11" x2="16" y2="9" stroke="#38BDF8" strokeWidth="1.5" opacity="0.6"/>
+          <line x1="20" y1="19" x2="22" y2="20" stroke="#38BDF8" strokeWidth="1.5" opacity="0.6"/>
+          <line x1="12" y1="19" x2="10" y2="20" stroke="#38BDF8" strokeWidth="1.5" opacity="0.6"/>
+          <circle cx="16" cy="6" r="1" fill="#FFFFFF"/>
+          <circle cx="24" cy="22" r="1" fill="#FFFFFF"/>
+          <circle cx="8" cy="22" r="1" fill="#FFFFFF"/>
+        </svg>
         <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Supplier Portal</p>
         <h2 className="text-sm font-semibold text-white truncate">{companyName}</h2>
       </div>
