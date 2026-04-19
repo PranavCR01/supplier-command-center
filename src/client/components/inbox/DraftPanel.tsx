@@ -227,12 +227,6 @@ export default function DraftPanel({ requestId, subject }: Props) {
     setIsEditing(false)
   }
 
-  const showToast = () => {
-    setToastVisible(true)
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-    toastTimerRef.current = setTimeout(() => setToastVisible(false), 3000)
-  }
-
   const openInEmailClient = async () => {
     const raw = isEditing && editor ? editor.getHTML() : editedContent
     const htmlContent = isHtml(raw) ? raw : markdownToHtml(raw)
@@ -244,16 +238,21 @@ export default function DraftPanel({ requestId, subject }: Props) {
       await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })])
     } catch { /* clipboard unavailable — user can copy manually */ }
 
-    if (userEmail.endsWith('@gmail.com')) {
-      window.open(
-        `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subjectStr)}`,
-        '_blank'
-      )
-    } else {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subjectStr)}`
-    }
+    // Show toast first so user sees it before focus shifts to the new tab
+    setToastVisible(true)
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
 
-    showToast()
+    setTimeout(() => {
+      if (userEmail.endsWith('@gmail.com')) {
+        window.open(
+          `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subjectStr)}`,
+          '_blank'
+        )
+      } else {
+        window.location.href = `mailto:?subject=${encodeURIComponent(subjectStr)}`
+      }
+      toastTimerRef.current = setTimeout(() => setToastVisible(false), 3000)
+    }, 1500)
   }
 
   // ── Render states ──────────────────────────────────────────────

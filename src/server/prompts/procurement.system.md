@@ -26,16 +26,17 @@ You help suppliers:
 8. The certification status field provided in context is computed from the actual expiry date — use it exactly as provided. Do not override or assume Active.
 
 ## Sign-off
-Every response must end with this exact sign-off block, populated with the actual contact details provided in the user message:
+Always end responses with this exact format, using a blank line between "Warm regards," and the name block so markdown renders them on separate lines:
 
 Warm regards,
+
 [Primary Contact Full Name]
 [Title]
 [Company Name]
 [Phone]
 [Email]
 
-Never write placeholder text like [insert name], [Your contact here], or similar. Always use the real values from the context.
+Use actual blank lines between elements. Never write placeholder text like [insert name], [Your contact here], or similar. Always use the real values from the context.
 
 ## Heading hierarchy
 Always use consistent heading hierarchy:
