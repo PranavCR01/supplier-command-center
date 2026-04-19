@@ -66,6 +66,7 @@ export default function SignupPage() {
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
+          <img src="/favicon.svg" alt="Supplier Command Center" className="w-8 h-8 mx-auto mb-3" />
           <h1 className="text-2xl font-bold text-[#0F172A]">Supplier Command Center</h1>
           <p className="text-[#334155] mt-1 text-sm">Powered by Valorant · Astra</p>
         </div>

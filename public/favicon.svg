@@ -1,0 +1,15 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Navy rounded background -->
+  <rect width="32" height="32" rx="7" fill="#0F172A"/>
+  <!-- Building base -->
+  <rect x="4" y="19" width="24" height="10" rx="1.5" fill="white"/>
+  <!-- Tower -->
+  <rect x="11" y="10" width="10" height="11" rx="1.5" fill="white"/>
+  <!-- Windows -->
+  <rect x="7" y="22" width="4" height="4" rx="0.5" fill="#64748B"/>
+  <rect x="22" y="22" width="4" height="4" rx="0.5" fill="#64748B"/>
+  <!-- Blue door -->
+  <rect x="14.5" y="23" width="3" height="6" fill="#0369A1"/>
+  <!-- Blue lightning bolt on tower -->
+  <path d="M 18 10 L 14 16 H 16 L 13 21 L 19 15 H 17 Z" fill="#0369A1"/>
+</svg>

@@ -47,6 +47,7 @@ export default function Sidebar({ companyName, pendingCount = 0, criticalCount =
     <aside className="flex flex-col w-64 min-h-screen bg-[#0F172A] text-white shrink-0">
       {/* Brand */}
       <div className="px-6 py-5 border-b border-white/10">
+        <img src="/favicon.svg" alt="Supplier Command Center" className="w-7 h-7 mb-3" />
         <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Supplier Portal</p>
         <h2 className="text-sm font-semibold text-white truncate">{companyName}</h2>
       </div>
