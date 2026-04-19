@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
-  Sparkles, AlertCircle, RefreshCw, Pencil, Eye, Mail,
+  Sparkles, AlertCircle, RefreshCw, Pencil, Eye, Mail, CheckCircle,
   Bold, Italic, Heading2, List, Undo2, Redo2,
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -94,6 +94,7 @@ export default function DraftPanel({ requestId, subject }: Props) {
   const [isEditing, setIsEditing] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
+  const [emailBtnState, setEmailBtnState] = useState<'idle' | 'opening'>('idle')
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -232,27 +233,33 @@ export default function DraftPanel({ requestId, subject }: Props) {
     const htmlContent = isHtml(raw) ? raw : markdownToHtml(raw)
     const subjectStr = subject ? `Re: ${subject}` : 'Response to your request'
 
-    // Copy as rich text (HTML) so paste into Gmail preserves tables, bold, headings
     try {
       const blob = new Blob([htmlContent], { type: 'text/html' })
       await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })])
-    } catch { /* clipboard unavailable — user can copy manually */ }
+    } catch { /* clipboard unavailable */ }
 
-    // Show toast first so user sees it before focus shifts to the new tab
-    setToastVisible(true)
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
 
-    setTimeout(() => {
-      if (userEmail.endsWith('@gmail.com')) {
+    if (userEmail.endsWith('@gmail.com')) {
+      // Show button feedback first — user reads it for 2s, then Gmail opens
+      setEmailBtnState('opening')
+      setToastVisible(true)
+      setTimeout(() => {
         window.open(
           `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subjectStr)}`,
           '_blank'
         )
-      } else {
-        window.location.href = `mailto:?subject=${encodeURIComponent(subjectStr)}`
-      }
+        toastTimerRef.current = setTimeout(() => {
+          setEmailBtnState('idle')
+          setToastVisible(false)
+        }, 3000)
+      }, 2000)
+    } else {
+      // mailto: — open immediately, Outlook takes time anyway
+      setToastVisible(true)
+      window.location.href = `mailto:?subject=${encodeURIComponent(subjectStr)}`
       toastTimerRef.current = setTimeout(() => setToastVisible(false), 3000)
-    }, 1500)
+    }
   }
 
   // ── Render states ──────────────────────────────────────────────
@@ -331,9 +338,16 @@ export default function DraftPanel({ requestId, subject }: Props) {
             </button>
             <button
               onClick={openInEmailClient}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-300 text-slate-600 bg-transparent hover:border-slate-400 hover:text-slate-700 transition-colors duration-150 cursor-pointer"
+              disabled={emailBtnState === 'opening'}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors duration-150 cursor-pointer ${
+                emailBtnState === 'opening'
+                  ? 'border-emerald-400 text-emerald-600 bg-emerald-50'
+                  : 'border-slate-300 text-slate-600 bg-transparent hover:border-slate-400 hover:text-slate-700'
+              }`}
             >
-              <Mail className="w-3 h-3" /> Open in email client
+              {emailBtnState === 'opening'
+                ? <><CheckCircle className="w-3 h-3" /> Opening Gmail...</>
+                : <><Mail className="w-3 h-3" /> Open in email client</>}
             </button>
           </div>
         )}
