@@ -167,9 +167,17 @@ export async function buildUserMessage(
 
       parts.push('\n### Certifications & Compliance')
       parts.push(
-        relevantCerts.map((c) =>
-          `- ${c.name} | Issuer: ${c.issuer ?? 'N/A'} | Cert#: ${c.cert_number ?? 'N/A'} | Expires: ${c.expiry_date ?? 'N/A'} | Status: ${c.status}`
-        ).join('\n')
+        relevantCerts.map((c) => {
+          const today = new Date()
+          const status = c.expiry_date
+            ? new Date(c.expiry_date) < today
+              ? 'Expired'
+              : new Date(c.expiry_date) < new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000)
+                ? 'Expiring Soon'
+                : 'Active'
+            : 'Unknown'
+          return `- ${c.name} | Issuer: ${c.issuer ?? 'N/A'} | Cert#: ${c.cert_number ?? 'N/A'} | Expires: ${c.expiry_date ?? 'N/A'} | Status: ${status}`
+        }).join('\n')
       )
     }
   }
