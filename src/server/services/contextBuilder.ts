@@ -71,8 +71,11 @@ export async function buildUserMessage(
 
   const parts: string[] = []
 
+  // Inject current date so Claude never writes placeholder text like "[Current Date]"
+  parts.push(`Today's date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`)
+
   // --- SUPPLIER PROFILE SECTION ---
-  parts.push('## SUPPLIER PROFILE')
+  parts.push('\n## SUPPLIER PROFILE')
 
   if (supplier) {
     const s = supplier
