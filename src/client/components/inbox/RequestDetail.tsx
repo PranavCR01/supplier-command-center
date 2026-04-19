@@ -164,7 +164,7 @@ export default function RequestDetail({ request, onClose }: Props) {
           <GapAnalysisCard request={request} />
 
           {/* AI Draft */}
-          <DraftPanel requestId={request.id} />
+          <DraftPanel requestId={request.id} subject={request.subject} />
         </div>
       </aside>
     </>
