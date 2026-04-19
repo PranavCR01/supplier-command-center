@@ -83,23 +83,6 @@ function markdownToHtml(md: string): string {
   return parts.join('')
 }
 
-function markdownToPlainText(md: string): string {
-  return md
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*(.+?)\*\*/gs, '$1')
-    .replace(/\*(.+?)\*/gs, '$1')
-    .replace(/^\|[\s\-:|]+\|$/gm, '')
-    .replace(/\|(.+)\|/g, (_: string, cells: string) =>
-      cells.split('|').map((c: string) => c.trim()).join('\t')
-    )
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-function htmlToPlainText(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  return doc.body.innerText.trim()
-}
 
 const isHtml = (s: string) => s.trimStart().startsWith('<')
 
@@ -252,23 +235,22 @@ export default function DraftPanel({ requestId, subject }: Props) {
 
   const openInEmailClient = async () => {
     const raw = isEditing && editor ? editor.getHTML() : editedContent
-    const fullText = isHtml(raw) ? htmlToPlainText(raw) : markdownToPlainText(raw)
+    const htmlContent = isHtml(raw) ? raw : markdownToHtml(raw)
     const subjectStr = subject ? `Re: ${subject}` : 'Response to your request'
 
-    // Copy full content to clipboard before truncating for URL
-    try { await navigator.clipboard.writeText(fullText) } catch { /* clipboard unavailable */ }
-
-    const truncated = fullText.length > 1500
-      ? fullText.slice(0, 1500) + '...\n\n[Full response copied to clipboard]'
-      : fullText
+    // Copy as rich text (HTML) so paste into Gmail preserves tables, bold, headings
+    try {
+      const blob = new Blob([htmlContent], { type: 'text/html' })
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })])
+    } catch { /* clipboard unavailable — user can copy manually */ }
 
     if (userEmail.endsWith('@gmail.com')) {
       window.open(
-        `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subjectStr)}&body=${encodeURIComponent(truncated)}`,
+        `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subjectStr)}`,
         '_blank'
       )
     } else {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subjectStr)}&body=${encodeURIComponent(truncated)}`
+      window.location.href = `mailto:?subject=${encodeURIComponent(subjectStr)}`
     }
 
     showToast()
@@ -477,7 +459,7 @@ export default function DraftPanel({ requestId, subject }: Props) {
           ${toastVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
       >
-        Full draft copied to clipboard — paste into your email to complete
+        Draft copied — paste into email body to preserve formatting (Ctrl+V)
       </div>
     </div>
   )
