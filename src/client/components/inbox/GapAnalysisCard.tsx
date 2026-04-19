@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Zap, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Zap, CheckCircle, AlertTriangle, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { InboxRequest, RequestType } from '../../../types'
 
@@ -16,10 +16,12 @@ interface Props {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001'
 
-function truncateWords(text: string, max: number): string {
+const WORD_LIMIT = 12
+
+function truncateWords(text: string): { display: string; truncated: boolean } {
   const words = text.trim().split(/\s+/)
-  if (words.length <= max) return text
-  return words.slice(0, max).join(' ') + '...'
+  if (words.length <= WORD_LIMIT) return { display: text, truncated: false }
+  return { display: words.slice(0, WORD_LIMIT).join(' ') + '...', truncated: true }
 }
 
 export default function GapAnalysisCard({ request }: Props) {
@@ -116,7 +118,12 @@ export default function GapAnalysisCard({ request }: Props) {
               {row.strength !== null ? (
                 <>
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>{truncateWords(row.strength, 15)}</span>
+                  <div title={row.strength} className="cursor-help flex items-center gap-0.5">
+                    <span>{truncateWords(row.strength).display}</span>
+                    {truncateWords(row.strength).truncated && (
+                      <Info className="w-3 h-3 text-slate-400 shrink-0" />
+                    )}
+                  </div>
                 </>
               ) : null}
             </div>
@@ -126,7 +133,12 @@ export default function GapAnalysisCard({ request }: Props) {
               {row.gap !== null ? (
                 <>
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                  <span>{truncateWords(row.gap, 15)}</span>
+                  <div title={row.gap} className="cursor-help flex items-center gap-0.5">
+                    <span>{truncateWords(row.gap).display}</span>
+                    {truncateWords(row.gap).truncated && (
+                      <Info className="w-3 h-3 text-slate-400 shrink-0" />
+                    )}
+                  </div>
                 </>
               ) : null}
             </div>

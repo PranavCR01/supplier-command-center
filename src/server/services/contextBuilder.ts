@@ -13,10 +13,44 @@ interface AcmeReference {
   relationship?: string
 }
 
+interface AcmePrimaryContact {
+  name: string
+  title: string
+  email: string
+  phone: string
+}
+
+interface AcmeRateRole {
+  role: string
+  rate: number
+  unit: string
+}
+
+interface AcmeManagedService {
+  service: string
+  rate: number
+  unit: string
+}
+
+interface AcmeVolumeDiscount {
+  threshold: string
+  discount: string
+}
+
+interface AcmeRateCard {
+  currency: string
+  effective_date: string
+  roles: AcmeRateRole[]
+  managed_services: AcmeManagedService[]
+  volume_discounts: AcmeVolumeDiscount[]
+}
+
 interface AcmeProfile {
+  contact: { primary: AcmePrimaryContact }
   capabilities: string[]
   industries_served: string[]
   references: AcmeReference[]
+  standard_rate_card: AcmeRateCard
 }
 
 // Capabilities, industries, and references are not stored in the DB.
@@ -109,6 +143,10 @@ export async function buildUserMessage(
     }
   }
 
+  // Primary contact — always included so Claude can sign off correctly
+  const pc = acmeProfile.contact.primary
+  parts.push(`\nPrimary contact: ${pc.name}, ${pc.title}, ${pc.email}, ${pc.phone}`)
+
   // Certifications — only for relevant request types
   if (FETCH_CERTS.includes(request.type)) {
     const { data: certs } = await supabase
@@ -149,6 +187,27 @@ export async function buildUserMessage(
         contacts.map((c) =>
           `- ${c.name} (${c.title ?? c.type}) | ${c.email ?? ''} | ${c.phone ?? ''}`
         ).join('\n')
+      )
+    }
+  }
+
+  // Rate card — included for RFQ so Claude uses real rates, never placeholders
+  if (request.type === 'rfq') {
+    const rc = acmeProfile.standard_rate_card
+    parts.push('\n### Rate Card')
+    parts.push(
+      rc.roles.map((r) => `- ${r.role}: $${r.rate} ${r.unit}`).join('\n')
+    )
+    if (rc.managed_services.length > 0) {
+      parts.push('\nManaged Services:')
+      parts.push(
+        rc.managed_services.map((s) => `- ${s.service}: $${s.rate} ${s.unit}`).join('\n')
+      )
+    }
+    if (rc.volume_discounts.length > 0) {
+      parts.push('\nVolume Discounts:')
+      parts.push(
+        rc.volume_discounts.map((d) => `- ${d.threshold}: ${d.discount} discount`).join('\n')
       )
     }
   }

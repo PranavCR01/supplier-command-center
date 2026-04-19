@@ -204,7 +204,17 @@ export default function DraftPanel({ requestId }: Props) {
           prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:text-slate-700 prose-td:align-top
           [&_tbody_tr:nth-child(even)]:bg-slate-50/70
         ">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{state.text}</ReactMarkdown>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: (props) => <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{props.children}</h2>,
+              h2: (props) => <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{props.children}</h2>,
+              h3: (props) => <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>{props.children}</h3>,
+              h4: (props) => <h4 style={{ fontSize: '0.9rem', fontWeight: 600 }}>{props.children}</h4>,
+            }}
+          >
+            {state.text}
+          </ReactMarkdown>
           {isStreaming && (
             <span className="inline-block w-0.5 h-4 bg-[#0369A1] ml-0.5 animate-pulse align-text-bottom" />
           )}
