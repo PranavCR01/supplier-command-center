@@ -1,4 +1,3 @@
-import { differenceInDays, parseISO, format } from 'date-fns'
 import { Paperclip } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TypeBadge from './TypeBadge'
@@ -21,22 +20,17 @@ const statusConfig: Record<RequestStatus, { label: string; class: string }> = {
 function DeadlineChip({ deadline }: { deadline: string | null }) {
   if (!deadline) return <span className="text-slate-400 text-xs">No deadline</span>
 
-  const days = differenceInDays(parseISO(deadline), new Date())
-  const label = format(parseISO(deadline), 'MMM d')
+  const today = new Date()
+  const deadlineDate = new Date(deadline)
+  const daysLeft = Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  const label = deadlineDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
-  if (days < 0) {
-    return <span className="text-xs font-semibold text-red-600">OVERDUE · {label}</span>
-  }
-  if (days === 0) {
-    return <span className="text-xs font-semibold text-red-500">Due today</span>
-  }
-  if (days <= 3) {
-    return <span className="text-xs font-semibold text-red-500">{days}d left · {label}</span>
-  }
-  if (days <= 14) {
-    return <span className="text-xs font-semibold text-amber-600">{days}d left · {label}</span>
-  }
-  return <span className="text-xs text-slate-500">{days}d left · {label}</span>
+  if (daysLeft < 0)  return <span className="text-xs font-semibold text-red-600">OVERDUE · {label}</span>
+  if (daysLeft === 0) return <span className="text-xs font-semibold text-red-600">Due today</span>
+  if (daysLeft <= 7)  return <span className="text-xs font-semibold text-red-600">{daysLeft}d left</span>
+  if (daysLeft <= 14) return <span className="text-xs font-semibold text-amber-600">{daysLeft}d left</span>
+  if (daysLeft <= 30) return <span className="text-xs font-medium text-slate-500">{daysLeft}d left</span>
+  return <span className="text-xs text-slate-400">{daysLeft}d left</span>
 }
 
 export default function RequestCard({ request, isSelected, onClick }: Props) {
