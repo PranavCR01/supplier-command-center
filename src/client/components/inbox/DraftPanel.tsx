@@ -110,6 +110,8 @@ export default function DraftPanel({ requestId, subject }: Props) {
   const [editedContent, setEditedContent] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [userEmail, setUserEmail] = useState('')
+  const [toastVisible, setToastVisible] = useState(false)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   // Fetch user email once on mount for email client detection (Change 2)
@@ -242,19 +244,34 @@ export default function DraftPanel({ requestId, subject }: Props) {
     setIsEditing(false)
   }
 
-  const openInEmailClient = () => {
+  const showToast = () => {
+    setToastVisible(true)
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = setTimeout(() => setToastVisible(false), 3000)
+  }
+
+  const openInEmailClient = async () => {
     const raw = isEditing && editor ? editor.getHTML() : editedContent
-    const plainText = isHtml(raw) ? htmlToPlainText(raw) : markdownToPlainText(raw)
+    const fullText = isHtml(raw) ? htmlToPlainText(raw) : markdownToPlainText(raw)
     const subjectStr = subject ? `Re: ${subject}` : 'Response to your request'
+
+    // Copy full content to clipboard before truncating for URL
+    try { await navigator.clipboard.writeText(fullText) } catch { /* clipboard unavailable */ }
+
+    const truncated = fullText.length > 1500
+      ? fullText.slice(0, 1500) + '...\n\n[Full response copied to clipboard]'
+      : fullText
 
     if (userEmail.endsWith('@gmail.com')) {
       window.open(
-        `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subjectStr)}&body=${encodeURIComponent(plainText)}`,
+        `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subjectStr)}&body=${encodeURIComponent(truncated)}`,
         '_blank'
       )
     } else {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subjectStr)}&body=${encodeURIComponent(plainText)}`
+      window.location.href = `mailto:?subject=${encodeURIComponent(subjectStr)}&body=${encodeURIComponent(truncated)}`
     }
+
+    showToast()
   }
 
   // ── Render states ──────────────────────────────────────────────
@@ -449,6 +466,19 @@ export default function DraftPanel({ requestId, subject }: Props) {
             : 'Draft generated — review, edit, or open in your email client.'}
         </p>
       )}
+
+      {/* Toast notification */}
+      <div
+        className={`
+          fixed bottom-5 right-5 z-50
+          bg-[#0F172A] text-white text-xs font-medium
+          px-4 py-2.5 rounded-lg shadow-lg
+          transition-opacity duration-300
+          ${toastVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+        `}
+      >
+        Full draft copied to clipboard — paste into your email to complete
+      </div>
     </div>
   )
 }
