@@ -1,5 +1,5 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2025-04-15 | Phase: Post-launch — Demo Prep
+> Last updated: 2026-04-19 | Phase: Post-launch — Demo Ready
 
 ## What we're building
 AI-powered supplier portal — the "other side" of Valorant's Astra procurement platform.
@@ -13,7 +13,7 @@ Live URL: https://supplier-command-center.vercel.app
 | Frontend | React + Vite + TypeScript + Tailwind + shadcn/ui |
 | Backend | Node.js + Express |
 | Database | Supabase (PostgreSQL + Auth + Storage + RLS) |
-| AI | Claude API — claude-sonnet-4-6, streaming, system prompt cached |
+| AI | Claude API — claude-haiku-4-5, streaming, system prompt cached |
 | Deploy | Vercel (FE) + Railway (BE) |
 
 ## Design system
@@ -35,13 +35,15 @@ src/client/          → React frontend
   components/        → ui/ layout/ + one folder per feature
   pages/             → one per route
   lib/supabase.ts    → Supabase client
+  assets/logo.svg    → app logo (also public/favicon.svg)
 src/server/          → Express backend
   routes/            → one file per domain
   prompts/procurement.system.md  → AI brain, loaded once at startup
-  services/claude.ts → Claude API wrapper (streaming)
+  services/claude.ts → Claude API wrapper (streaming, MAX_OUTPUT_TOKENS=2500)
+  services/contextBuilder.ts → builds per-request context (contact, rate card, certs)
 src/types/index.ts   → all shared TypeScript types
 design-system/suppliercommandcenter/MASTER.md → read before ANY UI work
-test-data/           → synthetic data (suppliers/, buyer-requests/, documents/, compliance/)
+test_data/           → synthetic data (suppliers/, buyer-requests/, documents/, compliance/)
 docs/schema.sql      → full DB schema
 ```
 
@@ -52,8 +54,10 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 ## AI rules
 - One system prompt: `src/server/prompts/procurement.system.md` — cached at startup
 - All responses stream via SSE — never wait for full completion
-- Never fabricate data — flag missing info, don't invent
-- Prompt = system prompt + supplier profile JSON + document text + task instruction
+- Never fabricate data — omit missing sections, never invent
+- Prompt = system prompt + today's date + primary contact + supplier profile + rate card (RFQ) + request body + task instruction
+- Cert status computed from expiry_date at request time — never trust DB status field
+- MAX_OUTPUT_TOKENS = 2500 (claude.ts)
 
 ## Claude Code session rules
 1. Read this file + `design-system/suppliercommandcenter/MASTER.md` before any UI work
@@ -64,7 +68,7 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 6. Python: use `py -3.14` not `python` (Windows multi-version setup)
 
 ## Opening message for every Claude Code session
-"Read CLAUDE.md. We're on Slice [N]. Task today: [specific task]. Check design-system/suppliercommandcenter/MASTER.md before writing any UI."
+"Read CLAUDE.md. Task today: [specific task]. Check design-system/suppliercommandcenter/MASTER.md before writing any UI."
 
 ## Build slices
 - [x] Slice 1 (Days 1–4): Auth + profile CRUD + app shell ✓
@@ -72,18 +76,19 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 - [x] Slice 3 (Days 10–15): AI response generator + streaming ✓
 - [x] Slice 4 (Days 16–20): Compliance tracker + dashboard + deploy ✓
 
-## Slice 2 — what to build next
-Files to create:
-- src/server/routes/requests.ts       → CRUD for inbox_requests
-- src/client/pages/inbox/InboxPage.tsx → main inbox list view
-- src/client/components/inbox/RequestCard.tsx → single request card
-- src/client/components/inbox/RequestDetail.tsx → expanded view
-- src/client/components/inbox/PriorityBadge.tsx → urgent/high/medium/low
-- src/client/components/inbox/TypeBadge.tsx → rfp/rfq/compliance/onboarding
-- src/client/lib/seed.ts → extend to also seed inbox_messages.json
+## AI Features built
+- AI Response Generator — streaming RFP/RFQ/compliance/onboarding drafts via SSE
+- RFP Gap Analyzer — GapAnalysisCard: profile vs requirements, tooltip on truncated items
+- Buyer Tone Insight — ToneInsightCard: urgency/sentiment/risk, cached by request ID
+- ESG Survey Auto-complete — SurveyAutoComplete: maps diversity certs to survey answers
+- TipTap rich text editor — inline draft editing with Bold/Italic/Heading/List/Undo/Redo toolbar
+- Open in email client — Gmail-aware (@gmail.com → Gmail compose URL); rich text HTML copied to clipboard; button state feedback + toast
 
-Done when: All 5 test requests from test-data/buyer-requests/inbox_messages.json
-are visible, filterable by type and priority, with deadline countdown.
+## DraftPanel behaviour
+- View mode: ReactMarkdown (markdown) or dangerouslySetInnerHTML (after TipTap edit)
+- Edit mode: TipTap editor; markdownToHtml() on enter, editor.getHTML() on exit
+- Email button: copies HTML to clipboard (ClipboardItem text/html), opens Gmail or mailto; Gmail path shows "Opening Gmail..." button state for 2s before opening new tab
+- Toast: "Draft copied — paste into email body to preserve formatting (Ctrl+V)"
 
 ## Decisions log
 | Date | Decision | Reason |
@@ -106,17 +111,19 @@ are visible, filterable by type and priority, with deadline countdown.
 | 2025-04-08 | GapAnalysisCard returns null for non-RFP types | Avoid unnecessary API calls for compliance/survey requests |
 | 2025-04-08 | ToneInsightCard cached by request ID via useRef | No re-fetch on panel reopen |
 | 2025-04-08 | ESG auto-complete from diversity profile data | Maps supplier certs to survey answers automatically |
+| 2026-04-19 | TipTap v3 for draft editing | Rich text editing with table support; markdownToHtml() converts AI output on entry |
+| 2026-04-19 | Gmail-aware email client detection | @gmail.com → Gmail compose URL; others → mailto: fallback |
+| 2026-04-19 | Rich text clipboard (ClipboardItem text/html) | Paste into Gmail preserves tables, bold, headings; avoids URL length limits |
+| 2026-04-19 | Dynamic cert status from expiry_date | DB status field stale; compute Active/Expiring Soon/Expired at request time |
+| 2026-04-19 | Structured response templates per type in system prompt | Consistent heading hierarchy and section order across all draft types |
+| 2026-04-19 | Logo/favicon: public/favicon.svg | Navy rounded square, white building, blue lightning bolt; shown in sidebar + auth pages |
+| 2026-04-19 | MAX_OUTPUT_TOKENS raised to 2500 | Longer structured drafts with tables were being cut off at 1500 |
+| 2026-04-19 | Dynamic deadline countdown in RequestCard | Math.ceil days remaining; red≤7d, amber≤14d, slate≤30d, slate-400>30d |
 
 ## Known issues (fix before demo)
 - [x] Sidebar "Loading..." persists after seed until reload (fix: window.location.reload() after seedAcme)
 - [x] Settings shows cached email from previous session (fix: fresh supabase.auth.getUser() on mount)
 - [x] AI draft shows [FLAGGED] placeholders for missing case studies (fix: update system prompt + seed data)
-
-## AI Features built
-- AI Response Generator — streaming RFP/RFQ drafts via SSE
-- RFP Gap Analyzer — profile vs requirements analysis
-- Tone Insight — urgency/sentiment/risk on buyer messages
-- ESG Survey Auto-complete — diversity cert mapping
 
 ## Live URLs
 - Frontend: https://supplier-command-center.vercel.app
