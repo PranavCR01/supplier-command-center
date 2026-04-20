@@ -5,6 +5,7 @@ The supplier-side complement to Valorant's Astra procurement platform.
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white&labelColor=20232A) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite&logoColor=white) ![Tailwind](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat&logo=tailwindcss&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat&logo=supabase&logoColor=white) ![Anthropic](https://img.shields.io/badge/Anthropic-Claude%20Haiku-D97706?style=flat) ![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=flat&logo=node.js&logoColor=white) ![Deployed](https://img.shields.io/badge/Deployed-Vercel%20%2B%20Railway-000000?style=flat&logo=vercel&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
 **Live demo:** https://supplier-command-center.vercel.app
+
 **Research:** https://www.notion.so/Astra-Valorant-Research-Report-Procurement-AI-the-Supplier-Problem-1513c9d7a0d947459ddc607ab36d27c2?source=copy_link
 
 ---
