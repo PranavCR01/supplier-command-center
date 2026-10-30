@@ -13,7 +13,9 @@
     "start": "tsx src/server/index.ts",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsx --test \"src/server/**/*.test.ts\"",
+    "tprm:verify-samples": "tsx scripts/tprm/verify-samples.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",

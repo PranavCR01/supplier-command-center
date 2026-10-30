@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS document_findings (
   supplier_id      uuid NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
   document_id      uuid NOT NULL REFERENCES security_documents(id) ON DELETE CASCADE,
   kind             text NOT NULL
-                     CHECK (kind IN ('control', 'control_exception', 'pentest_finding',
-                                     'phishing_metric', 'policy_statement')),
+                     CHECK (kind IN ('control', 'control_exception', 'carve_out',
+                                     'pentest_finding', 'phishing_metric', 'policy_statement')),
   ref              text,          -- control ID (CC6.2), finding ID (PT-03), etc.
   title            text NOT NULL,
   stated_severity  text,          -- copied from the source document, never inferred

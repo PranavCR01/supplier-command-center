@@ -1,0 +1,333 @@
+{
+  "version": "2026-10-30.1",
+  "written_before_prompts": true,
+  "notes": "Hand-labeled expectations for the synthetic Acme evidence set. Written and committed before any prompt existed. `evidence` lists acceptable citation locations (a cited location counts as correct if it matches any entry). `anchor` is a verbatim snippet that must appear in that location; `npm run tprm:verify-samples` checks every anchor against the parsed documents. `acceptable_readiness` exists only where a reasonable reviewer could disagree; the safety rule is that an answer listed with expected_readiness != ready must never be marked ready.",
+
+  "documents": {
+    "soc2":          { "file": "acme_soc2_type2_2026.pdf",                    "doc_type": "soc2_report",      "units": 16 },
+    "pentest":       { "file": "acme_pentest_summary_2026.pdf",               "doc_type": "pentest_summary",  "units": 4 },
+    "phishing":      { "file": "acme_phishing_simulation_summary_2026.pdf",   "doc_type": "phishing_summary", "units": 3 },
+    "policy":        { "file": "acme_infosec_access_control_policy_v3.2.pdf", "doc_type": "security_policy",  "units": 6 },
+    "access_review": { "file": "acme_access_review_q2_2026.xlsx",             "doc_type": "access_review" },
+    "questionnaire": { "file": "clearfield_vendor_security_questionnaire.xlsx", "doc_type": "questionnaire", "questions": 22 }
+  },
+
+  "questions": [
+    {
+      "ref": "GOV-01",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "evidence": [
+        { "doc": "policy", "page": 1, "anchor": "Reviewed and approved at least annually" },
+        { "doc": "soc2", "page": 10, "anchor": "Information security policies are reviewed and approved by management at least annually" }
+      ]
+    },
+    {
+      "ref": "GOV-02",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "must_mention": ["June 30, 2026"],
+      "evidence": [
+        { "doc": "soc2", "page": 1, "anchor": "For the period July 1, 2025 to June 30, 2026" },
+        { "doc": "soc2", "page": 4, "anchor": "August 28, 2026" }
+      ]
+    },
+    {
+      "ref": "GOV-03",
+      "expected_answer": "yes",
+      "expected_readiness": "needs_evidence",
+      "expected_reasons": ["CONTROL_EXCEPTION"],
+      "must_mention": ["CC6.2", "CC8.1"],
+      "notes": "Correct and supported, but discloses auditor exceptions, so a human signs off on the wording.",
+      "evidence": [
+        { "doc": "soc2", "page": 4, "anchor": "two exceptions identified in our tests of operating effectiveness" },
+        { "doc": "soc2", "page": 11, "anchor": "2 of 25 sampled accounts marked for removal were not removed until 41 days after review sign-off" },
+        { "doc": "soc2", "page": 14, "anchor": "approved 3 business days after deployment to production" }
+      ]
+    },
+    {
+      "ref": "IAM-01",
+      "expected_answer": "partial",
+      "acceptable_answers": ["partial", "no"],
+      "expected_readiness": "conflict",
+      "notes": "Seeded conflict C1: policy claims MFA on all interactive access including administrative interfaces; pen test finds the admin portal accepts password-only login.",
+      "conflict": {
+        "a": { "doc": "policy", "page": 3, "anchor": "Multi-factor authentication is enforced for all interactive access to Acme systems, including administrative interfaces" },
+        "b": [
+          { "doc": "pentest", "page": 3, "anchor": "accepts a username and password without requiring multi-factor authentication" },
+          { "doc": "pentest", "page": 2, "anchor": "Administrative portal accepts password-only authentication without MFA" }
+        ]
+      },
+      "evidence": [
+        { "doc": "policy", "page": 3, "anchor": "Multi-factor authentication is enforced for all interactive access to Acme systems" },
+        { "doc": "pentest", "page": 3, "anchor": "accepts a username and password without requiring multi-factor authentication" },
+        { "doc": "pentest", "page": 2, "anchor": "Administrative portal accepts password-only authentication without MFA" },
+        { "doc": "soc2", "page": 11, "anchor": "Multi-factor authentication is required for remote access to the production network via VPN" }
+      ]
+    },
+    {
+      "ref": "IAM-02",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "decoy_conflict": true,
+      "notes": "Decoy: PT-03 concerns the admin portal, not VPN or cloud console access. Flagging a conflict here is a false positive.",
+      "evidence": [
+        { "doc": "soc2", "page": 11, "anchor": "Multi-factor authentication is required for remote access to the production network via VPN and for access to the AWS management console" },
+        { "doc": "policy", "page": 3, "anchor": "including administrative interfaces and remote access" }
+      ]
+    },
+    {
+      "ref": "IAM-03",
+      "expected_answer": "partial",
+      "expected_readiness": "needs_evidence",
+      "expected_reasons": ["VERIFIER_PARTIAL"],
+      "notes": "Trap: evidence says one business day, the question asks 24 hours. 'Yes' overstates the evidence.",
+      "evidence": [
+        { "doc": "policy", "page": 3, "anchor": "Access for terminated personnel is removed within one business day of termination" },
+        { "doc": "soc2", "page": 11, "anchor": "removed within one business day of the termination date" }
+      ]
+    },
+    {
+      "ref": "IAM-04",
+      "expected_answer": "partial",
+      "expected_readiness": "needs_evidence",
+      "expected_reasons": ["CONTROL_EXCEPTION"],
+      "decoy_conflict": true,
+      "notes": "Policy and SOC 2 agree on quarterly reviews; the problem is an auditor exception, not a document conflict.",
+      "evidence": [
+        { "doc": "soc2", "page": 11, "anchor": "2 of 25 sampled accounts marked for removal were not removed until 41 days after review sign-off" },
+        { "doc": "access_review", "sheet": "Q2-2026 Review", "row": 27, "anchor": "User: ctr.mbaker" },
+        { "doc": "access_review", "sheet": "Q2-2026 Review", "row": 28, "anchor": "User: ctr.rsingh" },
+        { "doc": "access_review", "sheet": "Summary", "row": 7, "anchor": "Removed late (more than 10 business days) | Value: 2" },
+        { "doc": "policy", "page": 3, "anchor": "reviewed at least quarterly by system owners" }
+      ]
+    },
+    {
+      "ref": "IAM-05",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "evidence": [
+        { "doc": "soc2", "page": 12, "anchor": "using separate administrative accounts" },
+        { "doc": "policy", "page": 3, "anchor": "Administrative privileges are granted through separate administrative accounts" }
+      ]
+    },
+    {
+      "ref": "DATA-01",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "decoy_conflict": true,
+      "must_mention": ["AES-256"],
+      "evidence": [
+        { "doc": "soc2", "page": 12, "anchor": "Customer data at rest is encrypted using AES-256 through AWS Key Management Service" },
+        { "doc": "policy", "page": 2, "anchor": "Confidential data at rest is encrypted using AES-256" }
+      ]
+    },
+    {
+      "ref": "DATA-02",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "evidence": [
+        { "doc": "soc2", "page": 12, "anchor": "Data in transit is encrypted using TLS 1.2 or higher" },
+        { "doc": "policy", "page": 2, "anchor": "encrypted using TLS 1.2 or higher" }
+      ]
+    },
+    {
+      "ref": "DATA-03",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "must_mention": ["us-east-1", "us-east-2"],
+      "evidence": [
+        { "doc": "soc2", "page": 6, "anchor": "Customer data is stored in the AWS us-east-1 (N. Virginia) region" }
+      ]
+    },
+    {
+      "ref": "DATA-04",
+      "expected_answer": "not_addressed",
+      "expected_readiness": "needs_evidence",
+      "expected_reasons": ["NO_EVIDENCE"],
+      "notes": "Trap: policy 10.1 covers Acme's own business records, not destruction of client data. Citing it as support is wrong.",
+      "evidence": []
+    },
+    {
+      "ref": "DATA-05",
+      "expected_answer": "partial",
+      "expected_readiness": "needs_evidence",
+      "expected_reasons": ["CARVE_OUT"],
+      "must_mention": ["AWS"],
+      "notes": "Physical security is carved out to AWS; the buyer needs the AWS SOC 2 report.",
+      "evidence": [
+        { "doc": "soc2", "page": 7, "anchor": "Physical security and environmental safeguards of the data centers hosting customer data are the responsibility of AWS" },
+        { "doc": "soc2", "page": 3, "anchor": "excludes controls of AWS" }
+      ]
+    },
+    {
+      "ref": "VULN-01",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "evidence": [
+        { "doc": "soc2", "page": 13, "anchor": "Authenticated vulnerability scans of the production environment are performed monthly" },
+        { "doc": "policy", "page": 4, "anchor": "Authenticated vulnerability scans of production are performed at least monthly" }
+      ]
+    },
+    {
+      "ref": "VULN-02",
+      "expected_answer": "partial",
+      "acceptable_answers": ["partial", "no"],
+      "expected_readiness": "conflict",
+      "must_mention": ["15"],
+      "notes": "Seeded conflict C2: 15-day critical SLA vs a critical finding open 45 days.",
+      "conflict": {
+        "a": { "doc": "policy", "page": 4, "anchor": "Critical vulnerabilities are remediated within 15 calendar days of identification" },
+        "b": [
+          { "doc": "pentest", "page": 3, "anchor": "the finding remains open, 45 days after it was reported" }
+        ]
+      },
+      "evidence": [
+        { "doc": "policy", "page": 4, "anchor": "Critical vulnerabilities are remediated within 15 calendar days of identification" },
+        { "doc": "pentest", "page": 3, "anchor": "the finding remains open, 45 days after it was reported" },
+        { "doc": "pentest", "page": 2, "anchor": "the critical finding and one high finding remain open" }
+      ]
+    },
+    {
+      "ref": "VULN-03",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "acceptable_readiness": ["ready", "needs_evidence"],
+      "must_mention": ["August"],
+      "notes": "Testing is performed; open findings are a separate question. Needs Evidence is acceptable if the answer leans on PT-01.",
+      "evidence": [
+        { "doc": "pentest", "page": 1, "anchor": "Testing window: August 10 to August 21, 2026" },
+        { "doc": "soc2", "page": 10, "anchor": "An independent third party performs an external penetration test at least annually" },
+        { "doc": "policy", "page": 4, "anchor": "An independent third party performs an external penetration test at least annually" }
+      ]
+    },
+    {
+      "ref": "VULN-04",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "evidence": [
+        { "doc": "soc2", "page": 12, "anchor": "Endpoint detection and response software is deployed to all company endpoints and production servers" }
+      ]
+    },
+    {
+      "ref": "TRN-01",
+      "expected_answer": "partial",
+      "expected_readiness": "conflict",
+      "acceptable_readiness": ["conflict", "needs_evidence"],
+      "must_mention": ["87%"],
+      "notes": "Policy requires all personnel to train annually; the latest cycle shows 87%. Conflict or Needs Evidence are both defensible; Ready is not.",
+      "conflict": {
+        "a": { "doc": "policy", "page": 5, "anchor": "All personnel complete security awareness training upon hire and annually thereafter" },
+        "b": [
+          { "doc": "phishing", "page": 1, "anchor": "124 of 142 employees (87%)" }
+        ]
+      },
+      "evidence": [
+        { "doc": "phishing", "page": 1, "anchor": "124 of 142 employees (87%)" },
+        { "doc": "policy", "page": 5, "anchor": "All personnel complete security awareness training upon hire and annually thereafter" },
+        { "doc": "soc2", "page": 9, "anchor": "Employees complete security awareness training upon hire and annually thereafter" }
+      ]
+    },
+    {
+      "ref": "TRN-02",
+      "expected_answer": "partial",
+      "expected_readiness": "conflict",
+      "notes": "Seeded conflict C3: policy says quarterly; two campaigns ran in 12 months.",
+      "conflict": {
+        "a": { "doc": "policy", "page": 5, "anchor": "Phishing simulations are conducted quarterly for all personnel" },
+        "b": [
+          { "doc": "phishing", "page": 1, "anchor": "Two phishing simulation campaigns were conducted during the reporting period" }
+        ]
+      },
+      "evidence": [
+        { "doc": "policy", "page": 5, "anchor": "Phishing simulations are conducted quarterly for all personnel" },
+        { "doc": "phishing", "page": 1, "anchor": "Two phishing simulation campaigns were conducted during the reporting period" }
+      ]
+    },
+    {
+      "ref": "IR-01",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "must_mention": ["72 hours"],
+      "evidence": [
+        { "doc": "soc2", "page": 13, "anchor": "tabletop exercise report dated March 12, 2026" },
+        { "doc": "policy", "page": 5, "anchor": "Affected customers are notified within 72 hours" }
+      ]
+    },
+    {
+      "ref": "BCP-01",
+      "expected_answer": "yes",
+      "expected_readiness": "ready",
+      "evidence": [
+        { "doc": "soc2", "page": 15, "anchor": "Inspected the disaster recovery test report dated May 20, 2026" },
+        { "doc": "policy", "page": 6, "anchor": "which are tested annually" }
+      ]
+    },
+    {
+      "ref": "BCP-02",
+      "expected_answer": "not_addressed",
+      "expected_readiness": "needs_evidence",
+      "expected_reasons": ["NO_EVIDENCE"],
+      "notes": "Trap: plans exist and are tested, but no document states RTO or RPO values. Any number in the answer is fabricated.",
+      "evidence": []
+    }
+  ],
+
+  "findings": {
+    "soc2": {
+      "controls": [
+        { "ref": "CC1.1", "status": "no_exceptions" }, { "ref": "CC1.4", "status": "no_exceptions" },
+        { "ref": "CC2.2", "status": "no_exceptions" }, { "ref": "CC2.3", "status": "no_exceptions" },
+        { "ref": "CC3.1", "status": "no_exceptions" }, { "ref": "CC4.2", "status": "no_exceptions" },
+        { "ref": "CC5.3", "status": "no_exceptions" }, { "ref": "CC6.1", "status": "no_exceptions" },
+        { "ref": "CC6.2", "status": "exceptions_noted", "page": 11 }, { "ref": "CC6.3", "status": "no_exceptions" },
+        { "ref": "CC6.4", "status": "no_exceptions" }, { "ref": "CC6.6", "status": "no_exceptions" },
+        { "ref": "CC6.7", "status": "no_exceptions" }, { "ref": "CC6.8", "status": "no_exceptions" },
+        { "ref": "CC7.1", "status": "no_exceptions" }, { "ref": "CC7.2", "status": "no_exceptions" },
+        { "ref": "CC7.4", "status": "no_exceptions" }, { "ref": "CC8.1", "status": "exceptions_noted", "page": 14 },
+        { "ref": "CC9.2", "status": "no_exceptions" }, { "ref": "A1.2", "status": "no_exceptions" },
+        { "ref": "A1.3", "status": "no_exceptions" }
+      ],
+      "carve_outs": [
+        { "subservice_org": "AWS", "page": 7, "anchor": "carved-out" }
+      ]
+    },
+    "pentest": [
+      { "ref": "PT-01", "stated_severity": "Critical", "status": "open" },
+      { "ref": "PT-02", "stated_severity": "High", "status": "remediated" },
+      { "ref": "PT-03", "stated_severity": "High", "status": "open" },
+      { "ref": "PT-04", "stated_severity": "Medium", "status": "remediated" },
+      { "ref": "PT-05", "stated_severity": "Medium", "status": "open" },
+      { "ref": "PT-06", "stated_severity": "Low", "status": "open" },
+      { "ref": "PT-07", "stated_severity": "Low", "status": "remediated" }
+    ],
+    "phishing": {
+      "campaigns": 2,
+      "click_rates": { "February 2026": "19%", "August 2026": "14%" },
+      "training_completion": "87%"
+    },
+    "access_review": {
+      "late_removals": 2,
+      "late_removal_rows": [27, 28]
+    }
+  },
+
+  "summaries": {
+    "soc2":          { "must_mention_exceptions": ["CC6.2", "CC8.1"], "must_mention_takeaways": ["AWS"] },
+    "pentest":       { "must_mention_exceptions": ["PT-01", "PT-03"] },
+    "phishing":      { "must_mention_any": ["87%", "two campaigns", "2 campaigns"] },
+    "policy":        { "must_mention_exceptions": [] },
+    "access_review": { "must_mention_any": ["41", "2 late", "two late", "late"] }
+  },
+
+  "remediation": {
+    "rules": "Create items for open pen test findings with stated severity Critical or High, and for every SOC 2 exception (severity 'high' by rule, since the report states none). Remediated findings and Medium/Low findings do not create items. The access review late removals are evidence for CC6.2, not a separate item.",
+    "required": [
+      { "ref": "PT-01", "severity": "critical" },
+      { "ref": "PT-03", "severity": "high" },
+      { "ref": "CC6.2", "severity": "high" },
+      { "ref": "CC8.1", "severity": "high" }
+    ],
+    "must_not_create": ["PT-02", "PT-04", "PT-05", "PT-06", "PT-07"]
+  }
+}
