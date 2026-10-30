@@ -34,7 +34,7 @@ opinion second, the model's own confidence last, and a human for anything unreso
 
 **Step 6 local check (needs the real DB; not possible in the cloud session):**
 1. Supabase SQL editor: run `docs/migrations/2026-10-31_security_review_additions.sql` → "Success. No rows returned".
-2. Pick a compliance request id: `select id, subject from inbox_requests where request_type = 'compliance' limit 5;`
+2. Pick a compliance request id: `select id, subject from inbox_requests where type in ('compliance', 'onboarding') limit 5;`
    (use one with no security review data yet, or add `--cleanup` first).
 3. `npm run tprm:check-supabase -- <request_id>` (fake model, free; removes its own rows). Expect `✓` lines for
    migration columns, 6 documents stored and parsed, storage round trip, 5 documents analyzed, run completed
