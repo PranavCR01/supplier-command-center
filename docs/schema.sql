@@ -159,3 +159,8 @@ CREATE INDEX idx_requests_supplier_id      ON inbox_requests(supplier_id);
 CREATE INDEX idx_requests_status           ON inbox_requests(status);
 CREATE INDEX idx_requests_deadline         ON inbox_requests(deadline);
 CREATE INDEX idx_responses_request_id      ON ai_responses(request_id);
+
+-- =============================================
+-- MIGRATIONS (run in order after the base schema above)
+-- =============================================
+-- docs/migrations/2026-10-30_security_review.sql  — security review / vendor-side TPRM tables + security-docs bucket
