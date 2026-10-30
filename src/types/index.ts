@@ -85,3 +85,62 @@ export interface AIResponse {
   tokens_used: number | null
   created_at: string
 }
+
+// ---------------------------------------------------------------------------
+// Security review (vendor-side TPRM)
+// ---------------------------------------------------------------------------
+
+// Where a citation points: a PDF page, or a range of spreadsheet rows
+export type Locator =
+  | { page: number }
+  | { sheet: string; row_start: number; row_end: number }
+
+export type SecurityDocType =
+  | 'soc2_report' | 'pentest_summary' | 'phishing_summary'
+  | 'security_policy' | 'access_review' | 'questionnaire' | 'other'
+
+export type SecurityDocRole = 'evidence' | 'questionnaire'
+export type ParseStatus = 'pending' | 'parsed' | 'failed'
+
+export interface SecurityDocument {
+  id: string
+  supplier_id: string
+  request_id: string | null
+  filename: string
+  storage_path: string | null
+  mime_type: string
+  sha256: string
+  role: SecurityDocRole
+  doc_type: SecurityDocType | null
+  doc_type_source: 'ai' | 'user' | null
+  parse_status: ParseStatus
+  parse_error: string | null
+  unit_count: number | null
+  summary: Record<string, unknown> | null
+  summary_prompt_version: string | null
+  created_at: string
+}
+
+export interface DocumentUnitRow {
+  id: string
+  supplier_id: string
+  document_id: string
+  unit_index: number
+  locator: Locator
+  text: string
+}
+
+export type ActivityActor = 'user' | 'ai' | 'system'
+
+export interface ActivityEvent {
+  id: string
+  supplier_id: string
+  request_id: string | null
+  actor: ActivityActor
+  actor_id: string | null
+  event_type: string
+  entity_type: string | null
+  entity_id: string | null
+  payload: Record<string, unknown>
+  created_at: string
+}

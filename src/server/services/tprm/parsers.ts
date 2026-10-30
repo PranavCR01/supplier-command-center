@@ -7,11 +7,12 @@ import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 const STANDARD_FONT_DATA_URL =
   path.join(path.dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json')), 'standard_fonts') + path.sep
 
+import type { Locator } from '../../../types/index.js'
+
+export type { Locator }
+
 // A unit is the smallest citable piece of a document: one PDF page, or a range of
 // spreadsheet rows. Every citation points at a unit via its locator.
-export type Locator =
-  | { page: number }
-  | { sheet: string; row_start: number; row_end: number }
 
 export interface DocumentUnit {
   unitIndex: number
@@ -29,6 +30,11 @@ export interface QuestionnaireItem {
 }
 
 const LOW_TEXT_CHARS = 40
+
+// Pages with almost no extractable text are likely scans; derived from text so it never needs storing
+export function isLowText(text: string): boolean {
+  return text.replace(/\s/g, '').length < LOW_TEXT_CHARS
+}
 const XLSX_ROWS_PER_UNIT = 25
 
 export async function parsePdf(data: Uint8Array): Promise<DocumentUnit[]> {
@@ -55,7 +61,7 @@ export async function parsePdf(data: Uint8Array): Promise<DocumentUnit[]> {
         unitIndex: pageNumber - 1,
         locator: { page: pageNumber },
         text,
-        lowText: text.replace(/\s/g, '').length < LOW_TEXT_CHARS,
+        lowText: isLowText(text),
       })
       page.cleanup()
     }

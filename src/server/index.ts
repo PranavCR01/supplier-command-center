@@ -3,9 +3,17 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { createClient } from '@supabase/supabase-js'
 import suppliersRouter from './routes/suppliers.js'
 import aiRouter from './routes/ai.js'
+import { createSecurityReviewRouter } from './routes/securityReview.js'
+import { requireAuth } from './middleware/auth.js'
 import { errorHandler } from './middleware/error.js'
+import { SupabaseSecurityReviewStore } from './services/tprm/store.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
 const PORT = process.env.PORT ?? 3001
@@ -23,6 +31,13 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 
 app.use('/api/suppliers', suppliersRouter)
 app.use('/api/ai', aiRouter)
+app.use('/api/security-review', createSecurityReviewRouter({
+  store: new SupabaseSecurityReviewStore(
+    createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  ),
+  requireAuth,
+  samplesDir: path.join(__dirname, '../../test_data/tprm/documents'),
+}))
 
 app.use(errorHandler)
 
