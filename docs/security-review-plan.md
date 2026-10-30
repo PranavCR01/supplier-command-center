@@ -25,15 +25,16 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 2 | Document classification, findings extraction, summary cards | Done (results below) |
 | 3 | Per question: gather evidence → quote check → conflict check | Done (results below) |
 | 4 | Draft answer → verify support → readiness | Done (results below) |
-| 5 | Eval script (`npm run eval:tprm`) — first checkpoint: numbers for a slide | **Next** |
-| 6 | Question run route + SSE progress + persistence | |
+| 5 | Eval script (`npm run eval:tprm`) — first checkpoint: numbers for a slide | Done — `docs/eval/2026-10-30.md` |
+| 6 | Question run route + SSE progress + persistence | **Next** |
 | 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | |
 | 8 | Remediation items + Jira-style CSV/JSON export | |
 | 9 | Final response assembled from Ready answers only | |
 | 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | |
 
-**Before step 6 (needs the real DB):** run `docs/migrations/2026-10-31_document_analysis.sql` on Supabase
-(adds `security_documents.analysis_status/analysis_error`, allows finding kind `access_review_exception`).
+**Before step 6 (needs the real DB):** run `docs/migrations/2026-10-31_security_review_additions.sql` on Supabase
+(adds `security_documents.analysis_status/analysis_error`, allows finding kind `access_review_exception`,
+adds `questionnaire_runs.as_of` and `questionnaire_answers.unsupported_numbers/errors`).
 Not run yet — this environment has no Supabase credentials.
 
 ### Step 2 results (real model, `npm run tprm:analyze-samples`, Haiku 4.5, 2026-10-30)
@@ -93,6 +94,33 @@ Remaining misses, stated plainly:
   calls this an auditor exception, not a conflict; the model's reading is defensible and resembles VULN-02,
   which gold labels a conflict. Gold not changed; label worth a second look by a human.
 - Every prompt change above was judged on the same 22 questions it will be scored on (circular).
+
+### Step 5: eval checkpoint (`npm run eval:tprm`, RUNS=3, 2026-10-30) — numbers for the slide
+
+Full pipeline (steps 2–4), Haiku 4.5, as-of 2026-10-30, ~115 s and ~105k input / 24k output tokens per
+run plus ~200k cache-read tokens. Full table and misses: `docs/eval/2026-10-30.md`.
+
+| Headline | Result (3 runs, identical) |
+|---|---|
+| Unsafe Ready (target 0) | **0** |
+| Conflict recall (IAM-01, VULN-02, TRN-02) | **3/3** |
+| Conflict false positives | **1** (IAM-02 decoy) |
+| Needs Evidence recall (planted gaps) | **6/6** |
+| Readiness matches gold | 19/22 · Ready 9 (gold 12) |
+| Answer accuracy · citation accuracy · must_mention | 18/22 · 53/63 · 11/11 |
+| Findings field accuracy · doc classification · summary coverage | 37/37 · 5/5 · 7/7 |
+| Consistency | 22/22 same readiness across runs |
+
+Read with care:
+- Circular: one author wrote documents, gold and prompts, and prompts were adjusted while looking at
+  these 22 questions. A regression harness, not a benchmark.
+- Consistency is weak evidence: temperature 0, three runs minutes apart on a warm cache. Across prompt
+  versions IAM-04 did flip between Conflict and Needs Evidence.
+- Citation accuracy counts any location not listed in gold as wrong, even when the passage is relevant
+  (e.g. SOC 2 p.8 for GOV-01).
+- The 3 readiness misses all fail safe (held back, not pushed to Ready): IAM-02, DATA-02, BCP-01.
+
+`npm run eval:tprm` exits 1 if any answer is unsafely Ready, so it can gate prompt changes.
 
 ### Step 4 results (real model, full pipeline steps 2–4, 22 questions, as-of 2026-10-30)
 
@@ -247,7 +275,7 @@ results are keyed by prompt version. A prompt change is a code change.
 
 Migration: `docs/migrations/2026-10-30_security_review.sql` (run on live Supabase, verified).
 Rollback: `docs/migrations/2026-10-30_security_review.down.sql`.
-Step 2 migration: `docs/migrations/2026-10-31_document_analysis.sql` (**not run yet**; rollback `.down.sql`).
+Step 2 migration: `docs/migrations/2026-10-31_security_review_additions.sql` (**not run yet**; rollback `.down.sql`).
 
 `security_documents`, `document_units`, `document_findings`, `questionnaire_runs`,
 `questionnaire_answers`, `remediation_items`, `activity_events` (append-only: UPDATE blocked by trigger,
@@ -270,6 +298,8 @@ uses the service role, so routes check ownership themselves (see `routes/securit
 | `src/server/services/tprm/scoreEvidence.ts` | Scores step 3 against gold: evidence recall, conflict recall/pairs, false positives, traps |
 | `src/server/services/tprm/answer.ts` | Step 4: draft from verified passages → number check → verifier → readiness inputs |
 | `src/server/services/tprm/readiness.ts` | Readiness rules as a pure function |
+| `src/server/services/tprm/scoreAnswers.ts` | Scores answers: unsafe Ready, conflict recall/FPs, Needs Evidence recall, accuracy |
+| `scripts/tprm/eval.ts` | `npm run eval:tprm`: whole pipeline, all scorers, RUNS for consistency, JSON + Markdown |
 | `src/server/services/tprm/pool.ts` | Bounded concurrency with a cache warm-up call first |
 | `scripts/tprm/evidence-samples.ts` | Live steps 2–3 on the samples + score (`npm run tprm:evidence-samples`, `ONLY=IAM-01,…`) |
 | `src/server/services/tprm/testing/fakeLlm.ts` | Fake `TprmLlm` for offline tests (same zod validation path) |
@@ -281,8 +311,8 @@ uses the service role, so routes check ownership themselves (see `routes/securit
 | `test_data/tprm/gold.json` | Expected answers, readiness, evidence locations, conflicts, findings, remediation |
 
 Commands: `npm test`, `npm run tprm:verify-samples`, `npx tsc --noEmit -p tsconfig.server.json`,
-`npx tsc --noEmit`. Live (needs `ANTHROPIC_API_KEY`; costs a few cents): `npm run tprm:analyze-samples`,
-`npm run tprm:evidence-samples`.
+`npx tsc --noEmit`, `npx tsc -p tsconfig.scripts.json` (scripts are outside the other two configs). Live (needs `ANTHROPIC_API_KEY`; costs a few cents): `npm run eval:tprm` (whole pipeline, `RUNS=3` for
+consistency), `npm run tprm:analyze-samples` (step 2 only), `npm run tprm:evidence-samples` (steps 2–3).
 Results go to `eval-results/` (git-ignored).
 
 API (step 2): `POST /requests/:id/analyze`, `POST /documents/:id/analyze`, `PATCH /documents/:id`

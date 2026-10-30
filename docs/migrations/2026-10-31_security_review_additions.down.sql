@@ -1,7 +1,12 @@
--- Rollback for 2026-10-31_document_analysis.sql
+-- Rollback for 2026-10-31_security_review_additions.sql
 -- Deletes access_review_exception findings so the original kind CHECK can be restored.
 
 BEGIN;
+
+ALTER TABLE questionnaire_answers
+  DROP COLUMN IF EXISTS errors,
+  DROP COLUMN IF EXISTS unsupported_numbers;
+ALTER TABLE questionnaire_runs DROP COLUMN IF EXISTS as_of;
 
 DELETE FROM document_findings WHERE kind = 'access_review_exception';
 ALTER TABLE document_findings DROP CONSTRAINT IF EXISTS document_findings_kind_check;

@@ -17,7 +17,8 @@
     "test": "tsx --test \"src/server/**/*.test.ts\"",
     "tprm:verify-samples": "tsx scripts/tprm/verify-samples.ts",
     "tprm:analyze-samples": "tsx scripts/tprm/analyze-samples.ts",
-    "tprm:evidence-samples": "tsx scripts/tprm/evidence-samples.ts"
+    "tprm:evidence-samples": "tsx scripts/tprm/evidence-samples.ts",
+    "eval:tprm": "tsx scripts/tprm/eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",
