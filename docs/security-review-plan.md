@@ -24,8 +24,8 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 1 | Upload, storage, parsing API (`/api/security-review`) | Done |
 | 2 | Document classification, findings extraction, summary cards | Done (results below) |
 | 3 | Per question: gather evidence → quote check → conflict check | Done (results below) |
-| 4 | Draft answer → verify support → readiness | **Next** |
-| 5 | Eval script (`npm run eval:tprm`) — first checkpoint: numbers for a slide | |
+| 4 | Draft answer → verify support → readiness | Done (results below) |
+| 5 | Eval script (`npm run eval:tprm`) — first checkpoint: numbers for a slide | **Next** |
 | 6 | Question run route + SSE progress + persistence | |
 | 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | |
 | 8 | Remediation items + Jira-style CSV/JSON export | |
@@ -62,7 +62,7 @@ What the code checks caught on real output (the honest part — the score alone 
 
 ### Step 3 results (real model, `npm run tprm:evidence-samples`, Haiku 4.5, 2026-10-30)
 
-Prompts `gather_evidence.v1` + `detect_conflict.v2`; 22 questions in ~40 s after step 2; cache read ~193k
+Prompts `gather_evidence.v1` + `detect_conflict.v2` (gather moved to v2 in step 4; step 5 re-measures); 22 questions in ~40 s after step 2; cache read ~193k
 tokens vs ~9k written per run (the warm-up call writes, the rest read).
 
 | Metric | v1 conflict prompt | **v2 (kept; same result on 2 runs)** |
@@ -93,6 +93,32 @@ Remaining misses, stated plainly:
   calls this an auditor exception, not a conflict; the model's reading is defensible and resembles VULN-02,
   which gold labels a conflict. Gold not changed; label worth a second look by a human.
 - Every prompt change above was judged on the same 22 questions it will be scored on (circular).
+
+### Step 4 results (real model, full pipeline steps 2–4, 22 questions, as-of 2026-10-30)
+
+One run each, scratch comparison against gold; the formal eval is step 5. ~65 s for 22 questions.
+
+| | First run (draft v1, verify v1, gather v1) | **After fixes (draft v2, verify v2, gather v2)** |
+|---|---|---|
+| Readiness matches gold (incl. acceptable) | 13/22 | **19/22** |
+| Unsafe Ready | **1 (IAM-03)** | **0** |
+| Ready | 4 | 10 (gold: 12) |
+
+Causes found and fixed (general rules, not per-question patches):
+- **No date in prompts.** The model called June 30, 2026 "a future date" (GOV-02, BCP-01). Drafter and
+  verifier now get `<today>`; runs take an `asOf` date (the eval pins 2026-10-30).
+- **"SOC 2 Type 2" counted as the number 2** by the number check → framework names excluded.
+- **Carve-out attached to unrelated questions** (encryption, data location) because the gather prompt
+  listed carve-outs as a generic `limits` example → v2 limits a carve-out to the carved-out controls.
+- **Remediated finding treated as a current gap** (TLS 1.0 on SMTP relay) → draft v2: remediated and
+  verified is history.
+- **IAM-03 unsafe Ready:** the drafter correctly said `partial`, the verifier correctly said supported,
+  so nothing held it back → new rule `GAP_DISCLOSED` (below).
+
+Remaining differences (all fail safe): IAM-02 Conflict (known false positive), DATA-02 verifier objected
+to unrelated open findings on the cited pen test page, BCP-01 carve-out still attached to DR. DATA-05
+readiness right but labelled `not_addressed` instead of `partial`. IAM-04 was Needs Evidence this run
+(Conflict in step 3 runs): the conflict call varies between runs on this question.
 
 **Rule from Pranav:** after every step, run tests and confirm the change works. Check that tests can
 fail (break something on purpose, confirm a test catches it, restore).
@@ -170,11 +196,23 @@ a few cents.
 | 4 | Cited location doesn't exist | Needs Evidence | `PAGE_OUT_OF_RANGE` |
 | 5 | Quote not found at the cited location | Needs Evidence | `QUOTE_NOT_FOUND` |
 | 6 | Cited page is a scan with no text | Needs Evidence | `LOW_TEXT` |
+| 6a | A digit in the answer is not on any cited page or in the question (added step 4) | Needs Evidence | `UNSUPPORTED_NUMBER` |
 | 7 | Answer relies on an auditor exception or open critical/high finding | Needs Evidence | `CONTROL_EXCEPTION` |
 | 8 | Answer relies on a subservice carve-out (e.g. AWS physical security) | Needs Evidence | `CARVE_OUT` |
+| 8a | Answer is `partial` or `no`: the vendor is admitting a gap (added step 4) | Needs Evidence | `GAP_DISCLOSED` |
 | 9 | Verifier says unsupported / partially supported | Needs Evidence | `VERIFIER_UNSUPPORTED` / `VERIFIER_PARTIAL` |
 | 10 | Model confidence < 0.7 | Needs Evidence | `LOW_CONFIDENCE` |
-| — | Everything passed | **Ready** | — |
+| — | Everything passed **and** the verifier said `supported` | **Ready** | — |
+
+How the rules get their inputs (`services/tprm/answer.ts`, `readiness.ts`):
+- Rules 4–6 apply to the passages the answer stands on. The drafter only sees verified passages, so
+  they fire when nothing verified, or when a `limits`/`contradicts` passage failed its quote check (an
+  adverse passage must not vanish because its quote was wrong).
+- Rules 7–8 use step 2 findings: a cited passage, or any verified adverse passage the drafter saw,
+  whose quote overlaps the finding's quote on the same page/row. Same page alone is not enough (SOC 2
+  p.11 has both the clean MFA control and the CC6.2 exception).
+- All rules that apply are stored in `reasons`; the first sets readiness. A skipped or failed verifier
+  never yields Ready.
 
 Confidence is last on purpose: self-reported confidence is poorly calibrated, so it can never make an
 answer Ready on its own. If a quote fails (rule 5), skip the verifier call.
@@ -194,14 +232,14 @@ results are keyed by prompt version. A prompt change is a code change.
 2. **summarize_document.v2** — per document, from findings + text: top findings, key exceptions,
    takeaways; each item has a locator + verbatim quote (verified by code). v2 over v1: start items with
    the control/finding ID, one quote must support the whole sentence, no arithmetic or self-counted totals.
-3. **gather_evidence.v1** — per question, against cached evidence. Return every relevant passage from
+3. **gather_evidence.v2** — per question, against cached evidence (v2: carve-outs limit only carved-out controls). Return every relevant passage from
    every document with stance `supports | limits | contradicts`. Never write an answer.
 4. **detect_conflict.v2** — verified passages only; explanation generated before the verdict. Conflict = incompatible claims about the same control
    and scope. Different wording that is compatible, or a policy stricter than what was tested, is NOT a
    conflict. Output: `{conflict, a, b, explanation}`.
-5. **draft_answer.v1** — verified passages only. Answer `yes | no | partial | not_addressed`. Disclose
+5. **draft_answer.v2** — verified passages only; gets `<today>`; remediated + verified findings are history. Answer `yes | no | partial | not_addressed`. Disclose
    exceptions. Never cite outside the given passages. Never invent numbers (RTO/RPO trap).
-6. **verify_support.v1** — question + answer + full text of cited units. Verdict
+6. **verify_support.v2** — question + answer + full text of cited units + `<today>`; reason before verdict. Verdict
    `supported | partially_supported | unsupported` + reason. Scope mismatch (one business day vs
    24 hours; production-only vs all users) = partially supported.
 
@@ -230,6 +268,8 @@ uses the service role, so routes check ownership themselves (see `routes/securit
 | `src/server/services/tprm/scoreAnalysis.ts` | Scores step 2 output against gold (reused by the step 5 eval) |
 | `src/server/services/tprm/evidence.ts` | Step 3: cached evidence context, gather → quote check → conflict check per question |
 | `src/server/services/tprm/scoreEvidence.ts` | Scores step 3 against gold: evidence recall, conflict recall/pairs, false positives, traps |
+| `src/server/services/tprm/answer.ts` | Step 4: draft from verified passages → number check → verifier → readiness inputs |
+| `src/server/services/tprm/readiness.ts` | Readiness rules as a pure function |
 | `src/server/services/tprm/pool.ts` | Bounded concurrency with a cache warm-up call first |
 | `scripts/tprm/evidence-samples.ts` | Live steps 2–3 on the samples + score (`npm run tprm:evidence-samples`, `ONLY=IAM-01,…`) |
 | `src/server/services/tprm/testing/fakeLlm.ts` | Fake `TprmLlm` for offline tests (same zod validation path) |

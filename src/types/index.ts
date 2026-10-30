@@ -170,6 +170,40 @@ export interface EvidenceConflict {
   explanation: string
 }
 
+export type AnswerValue = 'yes' | 'no' | 'partial' | 'not_addressed'
+export type Readiness = 'ready' | 'needs_evidence' | 'conflict'
+
+// In rule order (first match sets readiness); every rule that applies is recorded
+export const READINESS_REASONS = [
+  'CONFLICT', 'SCHEMA_INVALID', 'NO_EVIDENCE', 'PAGE_OUT_OF_RANGE', 'QUOTE_NOT_FOUND', 'LOW_TEXT',
+  'UNSUPPORTED_NUMBER', 'CONTROL_EXCEPTION', 'CARVE_OUT', 'GAP_DISCLOSED', 'VERIFIER_UNSUPPORTED', 'VERIFIER_PARTIAL',
+  'LOW_CONFIDENCE',
+] as const
+export type ReadinessReason = typeof READINESS_REASONS[number]
+
+export type VerifierVerdict = 'supported' | 'partially_supported' | 'unsupported'
+
+export interface AnswerEvidence extends EvidencePassage {
+  cited: boolean      // the drafted answer cites this passage
+}
+
+// One drafted questionnaire answer, shaped like a questionnaire_answers row
+export interface DraftedAnswer {
+  question_ref: string
+  domain: string | null
+  question_text: string
+  answer: AnswerValue | null
+  response_text: string | null
+  evidence: AnswerEvidence[]
+  conflict: EvidenceConflict | null
+  verifier: { verdict: VerifierVerdict; reason: string } | null
+  model_confidence: number | null
+  readiness: Readiness
+  reasons: ReadinessReason[]
+  unsupported_numbers: string[]
+  errors: string[]
+}
+
 export type FindingKind =
   | 'control' | 'control_exception' | 'carve_out' | 'pentest_finding'
   | 'phishing_metric' | 'policy_statement' | 'access_review_exception'

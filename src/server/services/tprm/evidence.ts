@@ -13,7 +13,7 @@ import { SecurityReviewStore } from './store.js'
 
 export const EVIDENCE_PROMPTS = {
   system: 'system.v1',
-  gather: 'gather_evidence.v1',
+  gather: 'gather_evidence.v2',
   conflict: 'detect_conflict.v2',
 } as const
 

@@ -52,4 +52,6 @@ test('numbers a claim adds to its source are reported', () => {
   assert.deepEqual(numbersNotInSource('TLS 1.2 or higher', 'TLS 1.2 or higher'), [])
   assert.deepEqual(numbersNotInSource('PT-01 and CC6.2 open since Q4, FY2026', 'nothing numeric here'), [])
   assert.deepEqual(numbersNotInSource('PT-01: open 46 days', 'PT-01 open 45 days'), ['46'])
+  assert.deepEqual(numbersNotInSource('Our SOC 2 Type 2 report', 'Type II report issued by the auditor'), [])
+  assert.deepEqual(numbersNotInSource('Type 2 scans run 2 times', 'Type II scans'), ['2'], 'a real quantity still counts')
 })
