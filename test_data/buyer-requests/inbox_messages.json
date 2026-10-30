@@ -97,5 +97,24 @@
     "attachments": [],
     "status": "pending_response",
     "tags": ["esg", "diversity", "survey", "astra", "annual"]
+  },
+  {
+    "id": "req_006",
+    "type": "compliance",
+    "priority": "high",
+    "deadline": "2026-11-13",
+    "received_at": "2026-10-27T15:30:00Z",
+    "from": {
+      "buyer_name": "Clearfield Financial",
+      "contact_name": "Priya Anand",
+      "contact_title": "Procurement Manager",
+      "contact_email": "p.anand@clearfieldfinancial.com",
+      "platform": "Email / Manual"
+    },
+    "subject": "Vendor Security Questionnaire (SIG-Lite) — Response Needed by November 13",
+    "body": "Hi Acme Tech Solutions team,\n\nAs the last step before final vendor approval, our Third-Party Risk team needs your responses to the attached Vendor Security Questionnaire (SIG-Lite style, 22 questions). It replaces the earlier 47-question PDF.\n\nFor each question, please answer Yes, No, Partial, or N/A, add a short explanation, and reference the supporting evidence (document name and page). We will review the evidence alongside your answers, so please include:\n\n- Your most recent SOC 2 Type II report\n- Your latest external penetration test summary, including retest status\n- Security awareness and phishing simulation results for the last 12 months\n- Your information security / access control policy\n- Your most recent user access review\n\nWhere your evidence shows an exception or an open finding, please tell us and include your remediation plan and target dates. Incomplete questionnaires will be returned.\n\nPlease send everything by November 13, 2026.\n\nThank you,\nPriya Anand\nProcurement Manager\nClearfield Financial",
+    "attachments": ["clearfield_vendor_security_questionnaire.xlsx"],
+    "status": "pending_response",
+    "tags": ["security-review", "sig-lite", "soc2", "third-party-risk"]
   }
 ]

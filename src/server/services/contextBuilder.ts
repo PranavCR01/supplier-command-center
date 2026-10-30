@@ -2,6 +2,7 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { relevantComplianceCerts } from './certSelection.js'
 import { truncateToLimit } from './claude.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -156,14 +157,7 @@ export async function buildUserMessage(
 
     if (certs && certs.length > 0) {
       // For compliance requests, only include the category most relevant to the request
-      const relevantCerts = request.type === 'compliance'
-        ? certs.filter((c) =>
-            request.tags.some((tag) =>
-              tag.toLowerCase().includes(c.category) ||
-              c.name.toLowerCase().includes(tag.toLowerCase())
-            )
-          ).slice(0, 5) || certs.slice(0, 5)
-        : certs
+      const relevantCerts = request.type === 'compliance' ? relevantComplianceCerts(certs, request.tags) : certs
 
       parts.push('\n### Certifications & Compliance')
       parts.push(

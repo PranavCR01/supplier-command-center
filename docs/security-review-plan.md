@@ -30,7 +30,7 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | Done — `npm run tprm:ui-check` |
 | 8 | Remediation items + Jira-style CSV/JSON export | Done |
 | 9 | Final response assembled from Ready answers only | Done |
-| 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | **Next** |
+| 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | Done (Supabase check + merge decisions are Pranav's) |
 
 **Step 6 local check (needs the real DB; not possible in the cloud session):**
 1. Supabase SQL editor: run `docs/migrations/2026-10-31_security_review_additions.sql` → "Success. No rows returned".
@@ -105,6 +105,27 @@ Remaining misses, stated plainly:
   calls this an auditor exception, not a conflict; the model's reading is defensible and resembles VULN-02,
   which gold labels a conflict. Gold not changed; label worth a second look by a human.
 - Every prompt change above was judged on the same 22 questions it will be scored on (circular).
+
+### Step 10: wrap-up
+
+- **Seed message:** `req_006` in `test_data/buyer-requests/inbox_messages.json` — Clearfield sends the
+  SIG-Lite questionnaire (compliance, high, due 2026-11-13), the natural entry point for the demo.
+  New "Load demo data" seeds include it; for an existing account run
+  `docs/migrations/2026-10-31_seed_clearfield_questionnaire.sql` (inserts one row for one supplier).
+- **End-to-end, real model, through HTTP** (`npm run tprm:e2e`, ~2 min): samples → analyze → SSE run →
+  resolve a conflict → remediation → filled questionnaire. Result: 0 unsafe Ready; conflicts IAM-01,
+  VULN-02, TRN-02 caught; readiness 19/22; remediation exactly PT-01, PT-03, CC6.2, CC8.1 (PT-01
+  overdue); only releasable answers in the xlsx. False conflicts this run: IAM-02 and **DATA-02** —
+  DATA-02 was a verifier hold-back in the three eval runs earlier the same day, so outcomes do vary
+  between sessions even at temperature 0 (the eval's 22/22 consistency was three runs minutes apart).
+- **375px:** `npm run tprm:ui-check` covers every tab at 375px (no horizontal scroll, content width,
+  selected tab visible, stacked conflict view, full-width drawer, menu drawer). Other app pages were not
+  re-checked beyond the shared shell fix.
+- **CLAUDE.md fixes:** Slice 2 "PDF parsing" wording; draft-path prompt caching verified not to fire
+  (1,093-token prompt, cache read/write 0) and comments corrected; contextBuilder cert fallback fixed
+  and tested (`services/certSelection.ts`); `engines.node >=22.13` added for pdfjs-dist.
+- **Recording:** `npm run tprm:record-demo` records a captioned walkthrough with the real model
+  (Playwright video, ~4 min, `demo-output/security-review-demo.webm`, git-ignored).
 
 ### Step 9: final response
 

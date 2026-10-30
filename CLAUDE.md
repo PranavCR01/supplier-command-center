@@ -1,5 +1,5 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2026-10-30 | Phase: Building Security Review (vendor-side TPRM) on branch `claude/loving-rubin-fi9o7n`
+> Last updated: 2026-10-30 | Phase: Security Review (vendor-side TPRM) built on branch `claude/loving-rubin-fi9o7n` — not merged; Supabase check pending
 
 ## CURRENT WORK — read first
 Building the Security Review feature (vendor-side TPRM, modeled on SAFE Security's TPRM product).
@@ -8,8 +8,9 @@ prompts, readiness rules, eval design, decisions, cut order, and SAFE mapping.
 SAFE product and domain background (agents, how they evaluate AI, SOC 2/TPRM primer): `docs/safe-context.md`.
 Sample data and gold labels: `test_data/tprm/README.md`, `test_data/tprm/gold.json`.
 Rules: work only on `claude/loving-rubin-fi9o7n`; never merge or touch production until Pranav says so;
-run tests after every step (`npm test`, `npm run tprm:verify-samples`, both `tsc` checks) and confirm
-tests can fail.
+run tests after every step (`npm test`, `npm run tprm:verify-samples`, `npx tsc --noEmit -p tsconfig.server.json`,
+`npx tsc --noEmit`, `npx tsc -p tsconfig.scripts.json`, `npm run tprm:ui-check`) and confirm tests can fail.
+Live checks (need `ANTHROPIC_API_KEY`): `npm run eval:tprm`, `npm run tprm:e2e`. Real DB: `npm run tprm:check-supabase`.
 
 ## What we're building
 AI-powered supplier portal — the "other side" of Valorant's Astra procurement platform.
@@ -53,7 +54,11 @@ src/server/          → Express backend
   services/contextBuilder.ts → builds per-request context (contact, rate card, certs)
 src/types/index.ts   → all shared TypeScript types
 design-system/suppliercommandcenter/MASTER.md → read before ANY UI work
-test_data/           → synthetic data (suppliers/, buyer-requests/, documents/, compliance/)
+  services/tprm/     → security review pipeline (parse, analyze, evidence, answer, readiness, remediation, response)
+  prompts/tprm/      → versioned security review prompts (*.vN.md)
+src/client/pages/security-review/, components/security-review/ → security review UI
+scripts/tprm/        → eval, e2e, UI check, dev API, Supabase check, demo recorder
+test_data/           → synthetic data (suppliers/, buyer-requests/, documents/, compliance/, tprm/)
 docs/schema.sql      → full DB schema
 ```
 
@@ -82,7 +87,7 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 
 ## Build slices
 - [x] Slice 1 (Days 1–4): Auth + profile CRUD + app shell ✓
-- [x] Slice 2 (Days 5–9): Smart inbox + request ingestion + PDF parsing ✓
+- [x] Slice 2 (Days 5–9): Smart inbox + request ingestion ✓ (attachments are listed, not parsed; the Security Review parses uploaded PDF/XLSX evidence)
 - [x] Slice 3 (Days 10–15): AI response generator + streaming ✓
 - [x] Slice 4 (Days 16–20): Compliance tracker + dashboard + deploy ✓
 
@@ -93,6 +98,9 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 - ESG Survey Auto-complete — SurveyAutoComplete: maps diversity certs to survey answers
 - TipTap rich text editor — inline draft editing with Bold/Italic/Heading/List/Undo/Redo toolbar
 - Open in email client — Gmail-aware (@gmail.com → Gmail compose URL); rich text HTML copied to clipboard; button state feedback + toast
+- Security Review (vendor-side TPRM) — `/inbox/:id/security-review`: evidence upload + parsing, summary cards,
+  questionnaire answering with code-verified citations, conflict detection, readiness rules, human review,
+  remediation + Jira CSV, filled questionnaire export. Details: `docs/security-review-plan.md`
 
 ## DraftPanel behaviour
 - View mode: ReactMarkdown (markdown) or dangerouslySetInnerHTML (after TipTap edit)
@@ -133,11 +141,22 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 | 2026-10-30 | Own quote+locator citations, not Claude Citations API | Citations API is incompatible with structured outputs; code-verified quotes make hallucinated citations catchable |
 | 2026-10-30 | Evidence gathering separated from answer drafting | Drafter can't skip contradicting documents, so conflicts surface |
 | 2026-10-30 | Additive migration run on live Supabase | New tables only; existing code unaffected (see docs/migrations/) |
+| 2026-10-30 | Readiness decided by code rules; Ready needs a "supported" verifier verdict | Model confidence is checked last and can only hold an answer back |
+| 2026-10-30 | Added rules UNSUPPORTED_NUMBER and GAP_DISCLOSED (partial/no needs sign-off) | Invented numbers caught in code; a correct "partial" was otherwise auto-Ready |
+| 2026-10-30 | Real quote cited to the wrong page is relocated only on a unique exact match in the same document | Bookkeeping errors fixed without letting invented or misattributed quotes pass |
+| 2026-10-30 | Prompts get today's date | Model called past dates "future" when judging "within 12 months" |
+| 2026-10-30 | Final response filtered in code; withheld answers never exported | Buyer only sees Ready or human-approved answers |
+| 2026-10-30 | Sidebar becomes a menu drawer below md | Fixed 256px sidebar squeezed every page to ~87px at 375px |
+| 2026-10-30 | Prompt caching on the draft path does not fire (verified) | System prompt is ~1,100 tokens, under Haiku 4.5's 4,096 minimum; earlier "billed once per 5 min" note was wrong |
 
 ## Known issues (fix before demo)
-- [ ] "PDF parsing ✓" in Slice 2 is inaccurate: attachments were never parsed (security review adds real parsing)
-- [ ] Prompt caching likely never fires on draft path: Haiku 4.5 needs ≥4,096-token prefix; system prompt is ~1,100
-- [ ] contextBuilder.ts `.slice(0, 5) || ...` fallback never runs (empty array is truthy)
+- [x] "PDF parsing ✓" in Slice 2 was inaccurate (wording fixed; security review adds real parsing)
+- [x] Prompt caching never fires on the draft path — verified (cache read/write 0); comments corrected, cache_control left in place
+- [x] contextBuilder.ts cert fallback never ran (fixed: `services/certSelection.ts`, tested)
+- [ ] Run `docs/migrations/2026-10-31_security_review_additions.sql` + `npm run tprm:check-supabase` before using the security review on the real DB
+- [ ] Existing demo accounts lack inbox message req_006 (Clearfield security questionnaire); new seeds include it
+- [ ] `npm run lint` has no ESLint config in the repo; `npm audit`: axios, @tiptap/core (high), @anthropic-ai/sdk (moderate)
+- [ ] package.json now declares `engines.node >=22.13` (pdfjs-dist 6 needs it) — confirm Railway's Node version before merging
 - [x] Sidebar "Loading..." persists after seed until reload (fix: window.location.reload() after seedAcme)
 - [x] Settings shows cached email from previous session (fix: fresh supabase.auth.getUser() on mount)
 - [x] AI draft shows [FLAGGED] placeholders for missing case studies (fix: update system prompt + seed data)

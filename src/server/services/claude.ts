@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Loaded once at startup — cached in memory and sent with cache_control
+// Loaded once at startup and kept in memory. Sent with cache_control, but at ~1,100 tokens it is
+// below Haiku 4.5's minimum cacheable prefix (4,096), so the API does not cache it (verified:
+// cache_creation_input_tokens and cache_read_input_tokens are 0). Harmless if the prompt grows.
 const systemPromptText = fs.readFileSync(
   path.join(__dirname, '../prompts/procurement.system.md'),
   'utf-8'
@@ -58,7 +60,7 @@ export async function streamDraft(
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: MAX_OUTPUT_TOKENS,
-    // System prompt cached — billed once per 5-minute TTL window
+    // cache_control has no effect at the current prompt size (see above)
     system: [
       {
         type: 'text',

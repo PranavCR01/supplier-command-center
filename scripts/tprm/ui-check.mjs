@@ -5,91 +5,31 @@
 // Usage: npm run tprm:ui-check            (screenshots to $UI_CHECK_OUT or ./ui-check-output)
 // Plain JS because Playwright is the machine's global install (NODE_PATH), not a project dependency.
 
-import { spawn } from 'child_process'
 import fs from 'fs'
 import { createRequire } from 'module'
 import path from 'path'
-import { fileURLToPath } from 'url'
+import { chromium, newPage, PAGE, ROOT, startServers, stopServers } from './browser-harness.mjs'
 
-const require = createRequire(import.meta.url)
-const { chromium } = require('playwright')
-const ExcelJS = require('exceljs')
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+const ExcelJS = createRequire(import.meta.url)('exceljs')
 const OUT = process.env.UI_CHECK_OUT ?? path.join(ROOT, 'ui-check-output')
-const API_PORT = 3101
-const WEB_PORT = 5174
-const SUPABASE = 'http://supabase.test'
-const TOKEN = 'dev-token'
-const USER_ID = '00000000-0000-4000-8000-000000000001'
-const REQUEST_ID = '00000000-0000-4000-8000-0000000000aa'
-const PAGE = `http://localhost:${WEB_PORT}/inbox/${REQUEST_ID}/security-review`
 
 fs.mkdirSync(OUT, { recursive: true })
-const children = []
 let failures = 0
 const ok = (m) => console.log(`✓ ${m}`)
 const bad = (m) => { failures++; console.log(`✗ ${m}`) }
 const check = (cond, m) => (cond ? ok(m) : bad(m))
 
-function start(cmd, args, env, readyText) {
-  return new Promise((resolve, reject) => {
-    // detached: own process group, so the npx wrapper and the server it starts are stopped together
-    const child = spawn(cmd, args, { cwd: ROOT, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
-    children.push(child)
-    let log = ''
-    const timer = setTimeout(() => reject(new Error(`${cmd} did not start:\n${log}`)), 60000)
-    const onData = (d) => {
-      log += d.toString()
-      if (log.includes(readyText)) { clearTimeout(timer); resolve(child) }
-    }
-    child.stdout.on('data', onData)
-    child.stderr.on('data', onData)
-    child.on('exit', (code) => reject(new Error(`${cmd} exited ${code}:\n${log}`)))
-  })
-}
-
-const session = {
-  access_token: TOKEN, refresh_token: 'dev-refresh', token_type: 'bearer', expires_in: 3600 * 24 * 365,
-  expires_at: Math.floor(Date.now() / 1000) + 3600 * 24 * 365,
-  user: { id: USER_ID, aud: 'authenticated', role: 'authenticated', email: 'dev@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() },
-}
-
-async function newPage(browser, viewport) {
-  const context = await browser.newContext({ viewport })
-  await context.addInitScript(([key, value]) => localStorage.setItem(key, value), ['sb-supabase-auth-token', JSON.stringify(session)])
-  await context.route(`${SUPABASE}/**`, (route) => {
-    const url = route.request().url()
-    const body = url.includes('/rest/v1/suppliers') ? { company_name: 'Acme Tech Solutions Inc.' }
-      : url.includes('/rest/v1/inbox_requests') ? { id: REQUEST_ID, subject: 'Vendor security questionnaire', from_buyer: 'Clearfield Financial', deadline: null }
-      : url.includes('/auth/v1/user') ? session.user
-      : {}
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
-  })
-  // Fonts come from Google; offline they fail, which is not a page error
-  await context.route('https://fonts.googleapis.com/**', (r) => r.abort())
-  await context.route('https://fonts.gstatic.com/**', (r) => r.abort())
-  const page = await context.newPage()
-  const errors = []
-  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
-  page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.g|ERR_FAILED|net::/.test(m.text())) errors.push(`console: ${m.text()}`) })
-  return { context, page, errors }
-}
-
 const noHorizontalScroll = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
 
 async function main() {
-  await start('npx', ['tsx', 'scripts/tprm/dev-server.ts', '--port', String(API_PORT)], {}, 'dev API on')
-  await start('npx', ['vite', '--port', String(WEB_PORT), '--strictPort'], {
-    VITE_SUPABASE_URL: SUPABASE, VITE_SUPABASE_ANON_KEY: 'anon', VITE_API_BASE_URL: `http://localhost:${API_PORT}`,
-  }, 'Local:')
+  await startServers()
   const browser = await chromium.launch()
 
   // ── Desktop: the whole flow ──────────────────────────────────────────────
-  const { context, page, errors } = await newPage(browser, { width: 1280, height: 900 })
+  const { context, page, errors } = await newPage(browser, { viewport: { width: 1280, height: 900 } })
   await page.goto(PAGE)
   await page.getByRole('heading', { name: 'Security review' }).waitFor()
-  const subjectShown = await page.getByText('Vendor security questionnaire').waitFor({ timeout: 5000 }).then(() => true, () => false)
+  const subjectShown = await page.getByText('Vendor Security Questionnaire (SIG-Lite)').waitFor({ timeout: 5000 }).then(() => true, () => false)
   check(subjectShown, 'page loads with the request subject')
 
   await page.getByRole('button', { name: 'Use sample documents' }).click()
@@ -189,7 +129,7 @@ async function main() {
   await context.close()
 
   // ── Mobile 375px ─────────────────────────────────────────────────────────
-  const m = await newPage(browser, { width: 375, height: 812 })
+  const m = await newPage(browser, { viewport: { width: 375, height: 812 } })
   for (const tab of ['documents', 'answers', 'remediation', 'response', 'activity']) {
     await m.page.goto(`${PAGE}?tab=${tab}`)
     await m.page.getByRole('heading', { name: 'Security review' }).waitFor()
@@ -229,9 +169,7 @@ try {
 } catch (err) {
   bad(err.stack ?? String(err))
 } finally {
-  for (const c of children) {
-    try { process.kill(-c.pid, 'SIGTERM') } catch { /* already gone */ }
-  }
+  stopServers()
 }
 console.log(failures ? `\n${failures} check(s) failed` : `\nAll UI checks passed. Screenshots in ${path.relative(ROOT, OUT) || OUT}`)
 process.exit(failures ? 1 : 0)
