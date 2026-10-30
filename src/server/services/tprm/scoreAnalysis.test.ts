@@ -19,7 +19,7 @@ function finding(kind: FindingKind, ref: string | null, extra: Partial<DocumentF
 }
 
 function card(exceptions: string[], takeaways: string[], other = ''): DocumentSummary {
-  const item = (text: string) => ({ text, locator: { page: 1 } as Locator, quote: 'q', quote_verified: true, failure: null, unsupported_numbers: [] })
+  const item = (text: string) => ({ text, locator: { page: 1 } as Locator, quote: 'q', quote_verified: true, failure: null, relocated_from: null, unsupported_numbers: [] })
   return { headline: other, top_findings: [], key_exceptions: exceptions.map(item), takeaways: takeaways.map(item) }
 }
 

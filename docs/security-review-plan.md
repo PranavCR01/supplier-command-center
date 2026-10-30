@@ -23,8 +23,8 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 0 | Synthetic documents + gold set (`test_data/tprm/`) | Done |
 | 1 | Upload, storage, parsing API (`/api/security-review`) | Done |
 | 2 | Document classification, findings extraction, summary cards | Done (results below) |
-| 3 | Per question: gather evidence → quote check → conflict check | **Next** |
-| 4 | Draft answer → verify support → readiness | |
+| 3 | Per question: gather evidence → quote check → conflict check | Done (results below) |
+| 4 | Draft answer → verify support → readiness | **Next** |
 | 5 | Eval script (`npm run eval:tprm`) — first checkpoint: numbers for a slide | |
 | 6 | Question run route + SSE progress + persistence | |
 | 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | |
@@ -60,6 +60,40 @@ What the code checks caught on real output (the honest part — the score alone 
   page that never says it (model background knowledge).
 - One run each; gold was not changed. The eval is circular (see Eval below).
 
+### Step 3 results (real model, `npm run tprm:evidence-samples`, Haiku 4.5, 2026-10-30)
+
+Prompts `gather_evidence.v1` + `detect_conflict.v2`; 22 questions in ~40 s after step 2; cache read ~193k
+tokens vs ~9k written per run (the warm-up call writes, the rest read).
+
+| Metric | v1 conflict prompt | **v2 (kept; same result on 2 runs)** |
+|---|---|---|
+| Conflict recall (IAM-01, VULN-02, TRN-02) | 3/3, correct pairs | **3/3, correct pairs** |
+| TRN-01 (Conflict or Needs Evidence both OK) | no conflict | conflict |
+| Conflict false positives | 4 (IAM-02, IAM-04, DATA-02, VULN-03) | **2 (IAM-02, IAM-04)** |
+| DATA-01 decoy | ok | ok |
+| "Supports" evidence on not-addressed traps (DATA-04, BCP-02) | none | none |
+| Evidence recall (gold locations cited with a verified quote) | 42/47 | **44/47** |
+| Quotes verified | 67/74 | **72/74** (5 relocated) |
+
+What changed and why:
+- **Reasoning before verdict.** In v1 the schema put `conflict` before `explanation`; structured output is
+  generated in schema order, so the model committed first and then wrote explanations arguing *against*
+  its own verdict (IAM-02, VULN-03). v2 puts `explanation` first. Removed 2 false positives.
+- **Citation relocation (code).** Most missed evidence was a real quote cited to the wrong page. If the
+  exact quote is at exactly one other location in the same document, `checkCitation` corrects the
+  locator and records `relocated_from`. Approximate matches, ambiguous matches, nonexistent pages and
+  other documents never relocate (GOV-02's pen test date attributed to the SOC 2 stays unverified).
+- **Tried and reverted:** a v3 rule "judge only the scope the question names" did not clear IAM-02 and
+  lost TRN-02 (recall 2/3). Not kept.
+
+Remaining misses, stated plainly:
+- **IAM-02 (decoy):** the policy/pen-test MFA clash is real but about the admin portal; the question asks
+  about VPN and console. Routes to Conflict → a human sees it; not an unsafe Ready.
+- **IAM-04 (decoy):** flagged as policy (removal within 10 business days) vs access review (41 days). Gold
+  calls this an auditor exception, not a conflict; the model's reading is defensible and resembles VULN-02,
+  which gold labels a conflict. Gold not changed; label worth a second look by a human.
+- Every prompt change above was judged on the same 22 questions it will be scored on (circular).
+
 **Rule from Pranav:** after every step, run tests and confirm the change works. Check that tests can
 fail (break something on purpose, confirm a test catches it, restore).
 
@@ -82,6 +116,8 @@ fail (break something on purpose, confirm a test catches it, restore).
 | JSON schema from zod | Schemas written with `zod/v4` (bundled in zod 3.25, no new package); `toOutputSchema` converts and strips keywords the API rejects | SDK 0.89's `zodOutputFormat` turns string enums into descriptions, so `doc_type` would not be constrained. Output is re-validated with zod either way. |
 | Analysis trigger | Explicit `POST /requests/:id/analyze` (and per document), not automatic on upload | Keeps upload fast and deterministic; the UI calls analyze after upload (step 7). |
 | Severity guard | A stated severity is kept only if the word appears on the cited page | "Copy severity as stated; never infer" enforced in code, not just the prompt. |
+| Citation relocation | Exact quote at exactly one other location in the same document → locator corrected, `relocated_from` kept | Wrong page numbers are bookkeeping; invented quotes and wrong-document quotes still fail. |
+| Conflict schema order | `explanation` before `conflict` | Structured output follows schema order; verdict-first produced self-contradicting explanations. |
 | Summary number guard | Digits in a summary sentence must appear on its cited page/rows (IDs like PT-01 excluded); flagged, not hidden | Catches computed and invented numbers that a verified quote alone does not. |
 
 ## Known issues found in the existing app (fix before demo, step 10)
@@ -160,7 +196,7 @@ results are keyed by prompt version. A prompt change is a code change.
    the control/finding ID, one quote must support the whole sentence, no arithmetic or self-counted totals.
 3. **gather_evidence.v1** — per question, against cached evidence. Return every relevant passage from
    every document with stance `supports | limits | contradicts`. Never write an answer.
-4. **detect_conflict.v1** — verified passages only. Conflict = incompatible claims about the same control
+4. **detect_conflict.v2** — verified passages only; explanation generated before the verdict. Conflict = incompatible claims about the same control
    and scope. Different wording that is compatible, or a policy stricter than what was tested, is NOT a
    conflict. Output: `{conflict, a, b, explanation}`.
 5. **draft_answer.v1** — verified passages only. Answer `yes | no | partial | not_addressed`. Disclose
@@ -192,6 +228,10 @@ uses the service role, so routes check ownership themselves (see `routes/securit
 | `src/server/services/tprm/citations.ts` | `checkCitation` (location exists → not low-text → quote at that page/row), `renderDocument` |
 | `src/server/services/tprm/analyze.ts` | Step 2: classify + extract (code-checked findings), summary card, events |
 | `src/server/services/tprm/scoreAnalysis.ts` | Scores step 2 output against gold (reused by the step 5 eval) |
+| `src/server/services/tprm/evidence.ts` | Step 3: cached evidence context, gather → quote check → conflict check per question |
+| `src/server/services/tprm/scoreEvidence.ts` | Scores step 3 against gold: evidence recall, conflict recall/pairs, false positives, traps |
+| `src/server/services/tprm/pool.ts` | Bounded concurrency with a cache warm-up call first |
+| `scripts/tprm/evidence-samples.ts` | Live steps 2–3 on the samples + score (`npm run tprm:evidence-samples`, `ONLY=IAM-01,…`) |
 | `src/server/services/tprm/testing/fakeLlm.ts` | Fake `TprmLlm` for offline tests (same zod validation path) |
 | `src/server/prompts/tprm/*.vN.md` | Versioned prompts; old versions kept |
 | `scripts/tprm/analyze-samples.ts` | Live step 2 run on the samples + score (`npm run tprm:analyze-samples`) |
@@ -201,7 +241,8 @@ uses the service role, so routes check ownership themselves (see `routes/securit
 | `test_data/tprm/gold.json` | Expected answers, readiness, evidence locations, conflicts, findings, remediation |
 
 Commands: `npm test`, `npm run tprm:verify-samples`, `npx tsc --noEmit -p tsconfig.server.json`,
-`npx tsc --noEmit`. Live (needs `ANTHROPIC_API_KEY`; costs a few cents): `npm run tprm:analyze-samples`.
+`npx tsc --noEmit`. Live (needs `ANTHROPIC_API_KEY`; costs a few cents): `npm run tprm:analyze-samples`,
+`npm run tprm:evidence-samples`.
 Results go to `eval-results/` (git-ignored).
 
 API (step 2): `POST /requests/:id/analyze`, `POST /documents/:id/analyze`, `PATCH /documents/:id`

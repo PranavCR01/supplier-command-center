@@ -7,9 +7,10 @@ import type {
   SecurityDocument,
   SummaryItem,
 } from '../../../types/index.js'
-import { checkCitation, ClaimedLocation, renderDocument } from './citations.js'
+import { checkCitation, ClaimedLocation, LocationSchema, renderDocument } from './citations.js'
 import { LlmUsage, loadPrompt, Prompt, StructuredResult, TprmLlm } from './llm.js'
 import { normalizeForMatch, numbersNotInSource } from './parsers.js'
+import { runPool } from './pool.js'
 import { NewFinding, SecurityReviewStore } from './store.js'
 
 export const PROMPTS = {
@@ -22,12 +23,6 @@ const EVIDENCE_TYPES = ['soc2_report', 'pentest_summary', 'phishing_summary', 's
 const FINDING_KINDS = ['control', 'control_exception', 'carve_out', 'pentest_finding',
   'phishing_metric', 'policy_statement', 'access_review_exception'] as const
 const FINDING_STATUSES = ['no_exceptions', 'exceptions_noted', 'open', 'remediated', 'risk_accepted'] as const
-
-const LocationSchema = z.object({
-  page: z.number().int().nullable(),
-  sheet: z.string().nullable(),
-  row: z.number().int().nullable(),
-})
 
 export const ExtractionSchema = z.object({
   doc_type: z.enum(EVIDENCE_TYPES),
@@ -73,6 +68,7 @@ export interface FindingStats {
   dropped_wrong_kind: number
   dropped_no_location: number
   severity_cleared: number
+  relocated: number
 }
 
 // Applies the code checks to raw extraction output: kind allowed for the doc type, a usable
@@ -86,7 +82,7 @@ export function buildFindings(
   promptVersion: string,
 ): { findings: NewFinding[]; stats: FindingStats } {
   const stats: FindingStats = {
-    extracted: raw.length, kept: 0, quote_verified: 0, dropped_wrong_kind: 0, dropped_no_location: 0, severity_cleared: 0,
+    extracted: raw.length, kept: 0, quote_verified: 0, dropped_wrong_kind: 0, dropped_no_location: 0, severity_cleared: 0, relocated: 0,
   }
   const findings: NewFinding[] = []
 
@@ -124,6 +120,7 @@ export function buildFindings(
     })
     stats.kept++
     if (check.verified) stats.quote_verified++
+    if (check.verified && check.relocatedFrom) stats.relocated++
   }
   return { findings, stats }
 }
@@ -138,6 +135,7 @@ function toSummaryItem(units: DocumentUnitRow[], item: SummaryOutput['top_findin
     quote: item.quote,
     quote_verified: check.verified,
     failure: check.verified ? null : check.failure,
+    relocated_from: check.verified ? check.relocatedFrom : null,
     // Checked against the whole cited page or row range, since a sentence may combine nearby values
     unsupported_numbers: unit ? numbersNotInSource(text, unit.text) : numbersNotInSource(text, ''),
   }
@@ -267,14 +265,5 @@ export async function analyzeDocument(ctx: AnalyzeContext, doc: SecurityDocument
 export async function analyzeRequestDocuments(ctx: AnalyzeContext, concurrency = 3): Promise<AnalyzeResult[]> {
   const docs = (await ctx.store.listDocuments(ctx.requestId))
     .filter((d) => d.role === 'evidence' && d.parse_status === 'parsed')
-  const results: AnalyzeResult[] = new Array(docs.length)
-  let next = 0
-  const worker = async () => {
-    while (next < docs.length) {
-      const i = next++
-      results[i] = await analyzeDocument(ctx, docs[i])
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(concurrency, docs.length) }, worker))
-  return results
+  return runPool(docs, concurrency, (doc) => analyzeDocument(ctx, doc))
 }

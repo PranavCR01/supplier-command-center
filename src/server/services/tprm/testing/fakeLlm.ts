@@ -12,13 +12,13 @@ export class FakeTprmLlm implements TprmLlm {
   readonly model = 'fake-model'
   calls: { task: string; input: string | undefined; context: string }[] = []
 
-  constructor(private readonly replies: Record<string, FakeReply | ((input: string | undefined) => FakeReply)>) {}
+  constructor(private readonly replies: Record<string, FakeReply | ((input: string | undefined, context: string) => FakeReply)>) {}
 
   async structured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
     this.calls.push({ task: req.task.version, input: req.input, context: req.context })
     const entry = this.replies[req.task.version]
     if (!entry) throw new Error(`FakeTprmLlm: no reply for ${req.task.version}`)
-    const reply = typeof entry === 'function' ? entry(req.input) : entry
+    const reply = typeof entry === 'function' ? entry(req.input, req.context) : entry
     if ('apiError' in reply) return { ok: false, error: 'api_error', message: reply.apiError, usage: null }
     const parsed = parseStructured(req.schema, 'raw' in reply ? reply.raw : JSON.stringify(reply.json))
     return parsed.ok

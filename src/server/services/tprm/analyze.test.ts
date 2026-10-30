@@ -86,7 +86,7 @@ describe('analyzeDocument', () => {
     assert.equal(result.status, 'analyzed')
     // severity cleared twice: PT-05 ("Severe" not on its page) and PT-02 (its page doesn't exist)
     assert.deepEqual(result.findings, {
-      extracted: 6, kept: 4, quote_verified: 2, dropped_wrong_kind: 1, dropped_no_location: 1, severity_cleared: 2,
+      extracted: 6, kept: 4, quote_verified: 2, dropped_wrong_kind: 1, dropped_no_location: 1, severity_cleared: 2, relocated: 0,
     })
 
     const byRef = Object.fromEntries(store.findings.map((f) => [f.ref, f]))
@@ -207,9 +207,14 @@ describe('checkCitation on spreadsheets', () => {
     const ok = at(27)
     assert.equal(ok.verified, true)
     assert.deepEqual(ok.locator, { sheet: 'Q2-2026 Review', row_start: 27, row_end: 27 })
-    // row 28 is in the same unit as row 27 (rows 27-32), so only a row-level check catches this
+    // row 28 is in the same unit as row 27 (rows 27-32): a unit-level check would accept row 28
+    // as cited; the row-level check finds the quote only in row 27 and corrects the citation
     const wrongRow = at(28)
-    assert.equal(wrongRow.verified === false && wrongRow.failure, 'QUOTE_NOT_FOUND')
+    assert.equal(wrongRow.verified, true)
+    assert.deepEqual(wrongRow.locator, { sheet: 'Q2-2026 Review', row_start: 27, row_end: 27 })
+    assert.deepEqual(wrongRow.verified && wrongRow.relocatedFrom, { sheet: 'Q2-2026 Review', row_start: 28, row_end: 28 })
+    const invented = checkCitation(units, loc(null, 'Q2-2026 Review', 27), 'User: ctr.nobody')
+    assert.equal(invented.verified === false && invented.failure, 'QUOTE_NOT_FOUND')
     const noSheet = at(27, 'Q3 Review')
     assert.equal(noSheet.verified === false && noSheet.failure, 'PAGE_OUT_OF_RANGE')
     const none = checkCitation(units, loc(null), 'User: ctr.mbaker')
@@ -221,6 +226,31 @@ describe('checkCitation on spreadsheets', () => {
     const check = checkCitation(await store.listUnits(doc.id), loc(null, 'summary', 7), 'Removed late (more than 10 business days) | Value: 2')
     assert.equal(check.verified, true)
     assert.deepEqual(check.locator, { sheet: 'Summary', row_start: 7, row_end: 7 })
+  })
+})
+
+describe('checkCitation on PDFs', () => {
+  test('a real quote cited to the wrong page is relocated to the one page that has it', async () => {
+    const doc = await ingest('acme_soc2_type2_2026.pdf')
+    const units = await store.listUnits(doc.id)
+    const check = checkCitation(units, loc(11), 'using separate administrative accounts')
+    assert.equal(check.verified, true)
+    assert.deepEqual(check.locator, { page: 12 })
+    assert.deepEqual(check.verified && check.relocatedFrom, { page: 11 })
+    assert.equal(checkCitation(units, loc(12), 'using separate administrative accounts').verified && 'ok', 'ok')
+  })
+
+  test('ambiguous, approximate-only, and other-document quotes are not relocated', async () => {
+    const soc2 = await store.listUnits((await ingest('acme_soc2_type2_2026.pdf')).id)
+    const many = checkCitation(soc2, loc(1), 'No exceptions noted.')                  // on most control pages
+    assert.equal(many.verified === false && many.failure, 'QUOTE_NOT_FOUND')
+    // approximately matches p.12 only ("via" for "through"); approximate is not enough to move a citation
+    const near = checkCitation(soc2, loc(11), 'Customer data at rest is encrypted using AES-256 via AWS Key Management Service')
+    assert.equal(near.verified === false && near.failure, 'QUOTE_NOT_FOUND')
+    const pentestText = checkCitation(soc2, loc(1), 'Report issued: September 4, 2026')  // from the pen test
+    assert.equal(pentestText.verified, false)
+    const missing = checkCitation(soc2, loc(40), 'using separate administrative accounts')
+    assert.equal(missing.verified === false && missing.failure, 'PAGE_OUT_OF_RANGE', 'a page that does not exist is never relocated')
   })
 })
 

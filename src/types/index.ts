@@ -113,6 +113,7 @@ export interface SummaryItem {
   quote: string
   quote_verified: boolean
   failure: CitationFailure | null
+  relocated_from: Locator | null
   // Digits in `text` that the cited page/rows never contain: computed or invented numbers
   unsupported_numbers: string[]
 }
@@ -143,6 +144,30 @@ export interface SecurityDocument {
   analysis_status: AnalysisStatus
   analysis_error: string | null
   created_at: string
+}
+
+export type EvidenceStance = 'supports' | 'limits' | 'contradicts'
+
+// A passage gathered for one question, after the code quote check
+export interface EvidencePassage {
+  document_id: string
+  filename: string
+  locator: Locator | null
+  quote: string
+  stance: EvidenceStance
+  note: string
+  quote_verified: boolean
+  failure: CitationFailure | null
+  // The model cited a different location; code found the quote here (see checkCitation)
+  relocated_from: Locator | null
+}
+
+// a/b are null when the model reported a conflict but named an invalid pair; the
+// question still routes to Conflict (fail safe), with the explanation for the reviewer
+export interface EvidenceConflict {
+  a: EvidencePassage | null
+  b: EvidencePassage | null
+  explanation: string
 }
 
 export type FindingKind =
