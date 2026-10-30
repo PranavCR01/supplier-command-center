@@ -6,7 +6,10 @@ import { AddressInfo } from 'net'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import type { AuthRequest } from '../middleware/auth.js'
+import { PROMPTS } from '../services/tprm/analyze.js'
+import { TprmLlm } from '../services/tprm/llm.js'
 import { MemorySecurityReviewStore } from '../services/tprm/memoryStore.js'
+import { FakeTprmLlm } from '../services/tprm/testing/fakeLlm.js'
 import { createSecurityReviewRouter } from './securityReview.js'
 
 const SAMPLES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../test_data/tprm/documents')
@@ -24,6 +27,7 @@ const fakeAuth: RequestHandler = (req, res, next) => {
 }
 
 let store: MemorySecurityReviewStore
+let llm: TprmLlm | null
 let base = ''
 let close: () => void
 
@@ -31,7 +35,7 @@ before(async () => {
   const app = express()
   app.use(express.json())
   app.use('/api/security-review', (req, res, next) =>
-    createSecurityReviewRouter({ store, requireAuth: fakeAuth, samplesDir: SAMPLES })(req, res, next))
+    createSecurityReviewRouter({ store, requireAuth: fakeAuth, samplesDir: SAMPLES, llm })(req, res, next))
   const server = app.listen(0)
   await new Promise((r) => server.once('listening', r))
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/security-review`
@@ -46,6 +50,7 @@ beforeEach(() => {
   store.suppliers.set('user-other', 'sup-other')
   store.requests.set('req-1', 'sup-acme')
   store.requests.set('req-other', 'sup-other')
+  llm = null
 })
 
 function upload(file: Uint8Array | string, filename: string, opts: { user?: string; request?: string; role?: string } = {}) {
@@ -180,5 +185,59 @@ describe('reading evidence', () => {
     await upload(sample('acme_soc2_type2_2026.pdf'), 'soc2.pdf')
     const body = await (await get('/requests/req-1/activity')).json() as { events: { event_type: string }[] }
     assert.deepEqual(body.events.map((e) => e.event_type), ['document_parsed', 'document_uploaded'])
+  })
+})
+
+describe('document analysis', () => {
+  const post = (p: string, user = 'user-acme') => fetch(`${base}${p}`, { method: 'POST', headers: { 'x-test-user': user } })
+  const patch = (p: string, body: unknown, user = 'user-acme') => fetch(`${base}${p}`, {
+    method: 'PATCH', headers: { 'x-test-user': user, 'content-type': 'application/json' }, body: JSON.stringify(body),
+  })
+  const phishingLlm = () => new FakeTprmLlm({
+    [PROMPTS.extract]: { json: { doc_type: 'phishing_summary', doc_type_reason: 'Phishing results.', findings: [
+      { kind: 'phishing_metric', ref: 'training_completion', title: 'Training completion', stated_severity: null, status: null,
+        detail: '87%', location: { page: 1, sheet: null, row: null }, quote: '124 of 142 employees (87%)' },
+    ] } },
+    [PROMPTS.summarize]: { json: { headline: 'Phishing summary.', top_findings: [], key_exceptions: [], takeaways: [] } },
+  })
+
+  test('503 when no model is configured; upload still works', async () => {
+    await upload(sample('acme_phishing_simulation_summary_2026.pdf'), 'ph.pdf')
+    assert.equal((await post('/requests/req-1/analyze')).status, 503)
+    assert.equal((await post(`/documents/${store.documents[0].id}/analyze`)).status, 503)
+  })
+
+  test("analyze a request, then read its findings; other suppliers can't", async () => {
+    llm = phishingLlm()
+    await upload(sample('acme_phishing_simulation_summary_2026.pdf'), 'ph.pdf')
+    const res = await post('/requests/req-1/analyze')
+    assert.equal(res.status, 200)
+    const body = await res.json() as { results: { status: string; docType: string }[] }
+    assert.deepEqual(body.results.map((r) => [r.status, r.docType]), [['analyzed', 'phishing_summary']])
+
+    const findings = await (await get('/requests/req-1/findings')).json() as { findings: { ref: string; quote_verified: boolean }[] }
+    assert.deepEqual(findings.findings.map((f) => [f.ref, f.quote_verified]), [['training_completion', true]])
+
+    assert.equal((await post('/requests/req-1/analyze', 'user-other')).status, 404)
+    assert.equal((await get('/requests/req-1/findings', 'user-other')).status, 404)
+    assert.equal((await post(`/documents/${store.documents[0].id}/analyze`, 'user-other')).status, 404)
+  })
+
+  test('a questionnaire cannot be analyzed as evidence', async () => {
+    llm = phishingLlm()
+    await upload(sample('clearfield_vendor_security_questionnaire.xlsx'), 'q.xlsx')
+    assert.equal((await post(`/documents/${store.documents[0].id}/analyze`)).status, 409)
+  })
+
+  test('vendor can correct the document type; it is validated, owned and logged', async () => {
+    await upload(sample('acme_phishing_simulation_summary_2026.pdf'), 'ph.pdf')
+    const id = store.documents[0].id
+    assert.equal((await patch(`/documents/${id}`, { doc_type: 'questionnaire' })).status, 400)
+    assert.equal((await patch(`/documents/${id}`, { doc_type: 'nonsense' })).status, 400)
+    assert.equal((await patch(`/documents/${id}`, { doc_type: 'phishing_summary' }, 'user-other')).status, 404)
+    const res = await patch(`/documents/${id}`, { doc_type: 'phishing_summary' })
+    assert.equal(res.status, 200)
+    assert.equal(store.documents[0].doc_type_source, 'user')
+    assert.equal(store.events.at(-1)?.event_type, 'document_type_set')
   })
 })

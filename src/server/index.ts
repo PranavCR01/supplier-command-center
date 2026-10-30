@@ -11,6 +11,7 @@ import aiRouter from './routes/ai.js'
 import { createSecurityReviewRouter } from './routes/securityReview.js'
 import { requireAuth } from './middleware/auth.js'
 import { errorHandler } from './middleware/error.js'
+import { AnthropicTprmLlm } from './services/tprm/llm.js'
 import { SupabaseSecurityReviewStore } from './services/tprm/store.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -37,6 +38,7 @@ app.use('/api/security-review', createSecurityReviewRouter({
   ),
   requireAuth,
   samplesDir: path.join(__dirname, '../../test_data/tprm/documents'),
+  llm: process.env.ANTHROPIC_API_KEY ? new AnthropicTprmLlm() : null,
 }))
 
 app.use(errorHandler)

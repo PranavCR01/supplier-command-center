@@ -246,3 +246,18 @@ export function matchQuote(unitText: string, quote: string): QuoteMatch {
   const score = best / qt.length
   return { found: score >= APPROXIMATE_THRESHOLD ? 'approximate' : 'no', score: Math.round(score * 100) / 100 }
 }
+
+// Numbers a claim states that its source never does ("31 days" when the source says
+// "41 days"). Catches arithmetic and invented values; spelled-out numbers are not checked.
+// Identifiers with letters attached (PT-01, CC6.2, Q4, FY2026, AES-256) are not quantities.
+const NUMBER = /\d+(?:[.,]\d+)*%?/g
+const IDENTIFIER = /[a-z]+-?\d+(?:[.-]\d+)*/g
+
+function numbersIn(text: string): string[] {
+  return normalizeForMatch(text).replace(IDENTIFIER, ' ').match(NUMBER) ?? []
+}
+
+export function numbersNotInSource(claim: string, source: string): string[] {
+  const have = new Set(numbersIn(source))
+  return [...new Set(numbersIn(claim))].filter((n) => !have.has(n))
+}

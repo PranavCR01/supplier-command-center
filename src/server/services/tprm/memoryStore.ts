@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
-import type { ActivityEvent, DocumentUnitRow, SecurityDocument } from '../../../types/index.js'
-import { NewActivityEvent, NewSecurityDocument, NewUnit, SecurityReviewStore } from './store.js'
+import type { ActivityEvent, DocumentFinding, DocumentUnitRow, SecurityDocument } from '../../../types/index.js'
+import { NewActivityEvent, NewFinding, NewSecurityDocument, NewUnit, SecurityReviewStore } from './store.js'
 
 // In-memory SecurityReviewStore for tests and for running the pipeline/evals without a database.
 export class MemorySecurityReviewStore implements SecurityReviewStore {
@@ -8,6 +8,7 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
   requests = new Map<string, string>()           // requestId -> supplierId
   documents: SecurityDocument[] = []
   units: DocumentUnitRow[] = []
+  findings: DocumentFinding[] = []
   files = new Map<string, Uint8Array>()
   events: ActivityEvent[] = []
   failUploads = false
@@ -34,6 +35,8 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
       unit_count: null,
       summary: null,
       summary_prompt_version: null,
+      analysis_status: 'pending',
+      analysis_error: null,
       created_at: new Date().toISOString(),
     }
     this.documents.push(row)
@@ -66,6 +69,23 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
 
   async getUnit(documentId: string, unitIndex: number) {
     return this.units.find((u) => u.document_id === documentId && u.unit_index === unitIndex) ?? null
+  }
+
+  async listUnits(documentId: string) {
+    return this.units.filter((u) => u.document_id === documentId).sort((a, b) => a.unit_index - b.unit_index)
+  }
+
+  async replaceFindings(supplierId: string, documentId: string, findings: NewFinding[]) {
+    this.findings = this.findings.filter((f) => f.document_id !== documentId)
+    for (const f of findings) {
+      this.findings.push({
+        ...f, id: randomUUID(), supplier_id: supplierId, document_id: documentId, created_at: new Date().toISOString(),
+      })
+    }
+  }
+
+  async listFindings(documentIds: string[]) {
+    return this.findings.filter((f) => documentIds.includes(f.document_id)).map((f) => ({ ...f }))
   }
 
   async uploadOriginal(path: string, data: Uint8Array) {

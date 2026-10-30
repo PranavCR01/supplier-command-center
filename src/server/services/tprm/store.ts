@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import type {
   ActivityActor,
   ActivityEvent,
+  DocumentFinding,
   DocumentUnitRow,
   Locator,
   SecurityDocRole,
@@ -28,6 +29,8 @@ export interface NewUnit {
   text: string
 }
 
+export type NewFinding = Omit<DocumentFinding, 'id' | 'supplier_id' | 'document_id' | 'created_at'>
+
 export interface NewActivityEvent {
   supplier_id: string
   request_id: string | null
@@ -53,6 +56,11 @@ export interface SecurityReviewStore {
 
   insertUnits(supplierId: string, documentId: string, units: NewUnit[]): Promise<void>
   getUnit(documentId: string, unitIndex: number): Promise<DocumentUnitRow | null>
+  listUnits(documentId: string): Promise<DocumentUnitRow[]>
+
+  // Re-analysis replaces a document's findings rather than appending to them
+  replaceFindings(supplierId: string, documentId: string, findings: NewFinding[]): Promise<void>
+  listFindings(documentIds: string[]): Promise<DocumentFinding[]>
 
   uploadOriginal(path: string, data: Uint8Array, mimeType: string): Promise<void>
   signedUrl(path: string, expiresInSeconds: number): Promise<string>
@@ -116,6 +124,30 @@ export class SupabaseSecurityReviewStore implements SecurityReviewStore {
     const { data } = await this.db
       .from('document_units').select('*').eq('document_id', documentId).eq('unit_index', unitIndex).maybeSingle()
     return (data as DocumentUnitRow | null) ?? null
+  }
+
+  async listUnits(documentId: string): Promise<DocumentUnitRow[]> {
+    const { data, error } = await this.db
+      .from('document_units').select('*').eq('document_id', documentId).order('unit_index')
+    if (error) throw new Error(`list document_units failed: ${error.message}`)
+    return (data ?? []) as DocumentUnitRow[]
+  }
+
+  async replaceFindings(supplierId: string, documentId: string, findings: NewFinding[]): Promise<void> {
+    const del = await this.db.from('document_findings').delete().eq('document_id', documentId)
+    if (del.error) throw new Error(`delete document_findings failed: ${del.error.message}`)
+    if (findings.length === 0) return
+    const rows = findings.map((f) => ({ ...f, supplier_id: supplierId, document_id: documentId }))
+    const { error } = await this.db.from('document_findings').insert(rows)
+    if (error) throw new Error(`insert document_findings failed: ${error.message}`)
+  }
+
+  async listFindings(documentIds: string[]): Promise<DocumentFinding[]> {
+    if (documentIds.length === 0) return []
+    const { data, error } = await this.db
+      .from('document_findings').select('*').in('document_id', documentIds).order('created_at')
+    if (error) throw new Error(`list document_findings failed: ${error.message}`)
+    return (data ?? []) as DocumentFinding[]
   }
 
   async uploadOriginal(path: string, data: Uint8Array, mimeType: string): Promise<void> {

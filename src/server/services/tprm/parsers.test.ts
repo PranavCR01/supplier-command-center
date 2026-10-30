@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { matchQuote, normalizeForMatch } from './parsers.js'
+import { matchQuote, normalizeForMatch, numbersNotInSource } from './parsers.js'
 
 const PAGE = `CC6.2 User access to production systems
 and the identity provider is reviewed
@@ -43,4 +43,13 @@ test('common words scattered across a page do not add up to a match', () => {
 
 test('empty quote does not match', () => {
   assert.equal(matchQuote(PAGE, '   ').found, 'no')
+})
+
+test('numbers a claim adds to its source are reported', () => {
+  assert.deepEqual(numbersNotInSource('2 of 25 accounts removed 41 days after sign-off', PAGE), [])
+  assert.deepEqual(numbersNotInSource('Removed 31 days late, in Q2 2026', PAGE), ['31'])
+  assert.deepEqual(numbersNotInSource('Click rate fell to 14%', 'click rate 14 percent'), ['14%'])
+  assert.deepEqual(numbersNotInSource('TLS 1.2 or higher', 'TLS 1.2 or higher'), [])
+  assert.deepEqual(numbersNotInSource('PT-01 and CC6.2 open since Q4, FY2026', 'nothing numeric here'), [])
+  assert.deepEqual(numbersNotInSource('PT-01: open 46 days', 'PT-01 open 45 days'), ['46'])
 })

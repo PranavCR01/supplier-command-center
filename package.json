@@ -15,7 +15,8 @@
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
     "test": "tsx --test \"src/server/**/*.test.ts\"",
-    "tprm:verify-samples": "tsx scripts/tprm/verify-samples.ts"
+    "tprm:verify-samples": "tsx scripts/tprm/verify-samples.ts",
+    "tprm:analyze-samples": "tsx scripts/tprm/analyze-samples.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",

@@ -101,6 +101,28 @@ export type SecurityDocType =
 
 export type SecurityDocRole = 'evidence' | 'questionnaire'
 export type ParseStatus = 'pending' | 'parsed' | 'failed'
+export type AnalysisStatus = 'pending' | 'running' | 'analyzed' | 'failed'
+
+// Why a citation failed the code check; shared by findings, summaries and answers
+export type CitationFailure = 'NO_LOCATION' | 'PAGE_OUT_OF_RANGE' | 'QUOTE_NOT_FOUND' | 'LOW_TEXT'
+
+// One summary card line: every claim carries a locator and a verbatim quote checked by code
+export interface SummaryItem {
+  text: string
+  locator: Locator | null
+  quote: string
+  quote_verified: boolean
+  failure: CitationFailure | null
+  // Digits in `text` that the cited page/rows never contain: computed or invented numbers
+  unsupported_numbers: string[]
+}
+
+export interface DocumentSummary {
+  headline: string
+  top_findings: SummaryItem[]
+  key_exceptions: SummaryItem[]
+  takeaways: SummaryItem[]
+}
 
 export interface SecurityDocument {
   id: string
@@ -116,8 +138,34 @@ export interface SecurityDocument {
   parse_status: ParseStatus
   parse_error: string | null
   unit_count: number | null
-  summary: Record<string, unknown> | null
+  summary: DocumentSummary | null
   summary_prompt_version: string | null
+  analysis_status: AnalysisStatus
+  analysis_error: string | null
+  created_at: string
+}
+
+export type FindingKind =
+  | 'control' | 'control_exception' | 'carve_out' | 'pentest_finding'
+  | 'phishing_metric' | 'policy_statement' | 'access_review_exception'
+
+export type FindingStatus =
+  | 'no_exceptions' | 'exceptions_noted' | 'open' | 'remediated' | 'risk_accepted'
+
+export interface DocumentFinding {
+  id: string
+  supplier_id: string
+  document_id: string
+  kind: FindingKind
+  ref: string | null
+  title: string
+  stated_severity: string | null
+  status: FindingStatus | null
+  detail: string | null
+  locator: Locator
+  quote: string | null
+  quote_verified: boolean
+  prompt_version: string
   created_at: string
 }
 

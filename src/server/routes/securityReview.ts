@@ -1,9 +1,11 @@
 import express, { NextFunction, RequestHandler, Response, Router } from 'express'
 import fs from 'fs'
 import path from 'path'
-import type { SecurityDocRole } from '../../types/index.js'
+import type { SecurityDocRole, SecurityDocType } from '../../types/index.js'
 import type { AuthRequest } from '../middleware/auth.js'
+import { analyzeDocument, analyzeRequestDocuments } from '../services/tprm/analyze.js'
 import { ingestDocument, MAX_UPLOAD_BYTES, UploadRejected } from '../services/tprm/ingest.js'
+import { TprmLlm } from '../services/tprm/llm.js'
 import { isLowText } from '../services/tprm/parsers.js'
 import { SecurityReviewStore } from '../services/tprm/store.js'
 
@@ -12,6 +14,8 @@ export interface SecurityReviewDeps {
   requireAuth: RequestHandler
   // Folder of synthetic sample documents for the "Use sample documents" button
   samplesDir: string
+  // null when no API key is configured: analysis routes answer 503, everything else works
+  llm: TprmLlm | null
 }
 
 interface ScopedRequest extends AuthRequest {
@@ -31,7 +35,12 @@ function parseRole(value: unknown): SecurityDocRole | undefined {
   return value === 'evidence' || value === 'questionnaire' ? value : undefined
 }
 
-export function createSecurityReviewRouter({ store, requireAuth, samplesDir }: SecurityReviewDeps): Router {
+// Types a vendor may set by hand on an evidence document (questionnaire is a role, not a choice here)
+const SETTABLE_DOC_TYPES: SecurityDocType[] = [
+  'soc2_report', 'pentest_summary', 'phishing_summary', 'security_policy', 'access_review', 'other',
+]
+
+export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm }: SecurityReviewDeps): Router {
   const router = Router()
 
   router.use(requireAuth)
@@ -86,6 +95,28 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir }: S
     res.json({ documents: await store.listDocuments(req.params.requestId) })
   }))
 
+  const requireLlm = wrap(async (_req, res, next) => {
+    if (!llm) {
+      res.status(503).json({ error: 'AI analysis is not configured' })
+      return
+    }
+    next()
+  })
+
+  // POST /requests/:requestId/analyze — classify, extract findings and summarize every evidence document
+  router.post('/requests/:requestId/analyze', requireOwnership, requireLlm, wrap(async (req, res) => {
+    const results = await analyzeRequestDocuments({
+      store, llm: llm!, supplierId: req.supplierId!, requestId: req.params.requestId,
+    })
+    res.json({ results })
+  }))
+
+  // GET /requests/:requestId/findings — structured findings across the request's documents
+  router.get('/requests/:requestId/findings', requireOwnership, wrap(async (req, res) => {
+    const docs = await store.listDocuments(req.params.requestId)
+    res.json({ findings: await store.listFindings(docs.map((d) => d.id)) })
+  }))
+
   router.get('/requests/:requestId/activity', requireOwnership, wrap(async (req, res) => {
     res.json({ events: await store.listEvents(req.params.requestId) })
   }))
@@ -103,6 +134,42 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir }: S
       document: { id: doc.id, filename: doc.filename, unit_count: doc.unit_count },
       unit: { unit_index: unit.unit_index, locator: unit.locator, text: unit.text, low_text: isLowText(unit.text) },
     })
+  }))
+
+  // POST /documents/:documentId/analyze — (re)analyze one document; replaces its findings and summary
+  router.post('/documents/:documentId/analyze', requireLlm, wrap(async (req, res) => {
+    const doc = await store.getDocument(req.params.documentId, req.supplierId!)
+    if (!doc || !doc.request_id) {
+      res.status(404).json({ error: 'Not found' })
+      return
+    }
+    const result = await analyzeDocument({ store, llm: llm!, supplierId: req.supplierId!, requestId: doc.request_id }, doc)
+    if (result.status === 'skipped') {
+      res.status(409).json({ error: 'Only parsed evidence documents can be analyzed', result })
+      return
+    }
+    res.json({ result })
+  }))
+
+  // PATCH /documents/:documentId { doc_type } — vendor corrects the classification; kept on re-analysis
+  router.patch('/documents/:documentId', wrap(async (req, res) => {
+    const doc = await store.getDocument(req.params.documentId, req.supplierId!)
+    if (!doc) {
+      res.status(404).json({ error: 'Not found' })
+      return
+    }
+    const docType = (req.body as { doc_type?: unknown } | undefined)?.doc_type
+    if (doc.role !== 'evidence' || !SETTABLE_DOC_TYPES.includes(docType as SecurityDocType)) {
+      res.status(400).json({ error: `doc_type must be one of: ${SETTABLE_DOC_TYPES.join(', ')}` })
+      return
+    }
+    await store.updateDocument(doc.id, { doc_type: docType as SecurityDocType, doc_type_source: 'user' })
+    await store.logEvent({
+      supplier_id: req.supplierId!, request_id: doc.request_id, actor: 'user', actor_id: req.userId ?? null,
+      event_type: 'document_type_set', entity_type: 'security_document', entity_id: doc.id,
+      payload: { from: doc.doc_type, to: docType },
+    })
+    res.json({ document: await store.getDocument(doc.id, req.supplierId!) })
   }))
 
   // GET /documents/:documentId/original — short-lived link to the uploaded file
