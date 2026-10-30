@@ -21,6 +21,7 @@ import { ingestDocument } from '../../src/server/services/tprm/ingest.js'
 import { AnthropicTprmLlm, LlmUsage } from '../../src/server/services/tprm/llm.js'
 import { MemorySecurityReviewStore } from '../../src/server/services/tprm/memoryStore.js'
 import { parseQuestionnaire } from '../../src/server/services/tprm/parsers.js'
+import { generateRemediation } from '../../src/server/services/tprm/remediation.js'
 import { AnalysisScore, AnalyzedDoc, GoldAnalysis, scoreAnalysis } from '../../src/server/services/tprm/scoreAnalysis.js'
 import { AnswerScore, GoldAnswers, scoreAnswers } from '../../src/server/services/tprm/scoreAnswers.js'
 import { EvidenceScore, scoreEvidence } from '../../src/server/services/tprm/scoreEvidence.js'
@@ -35,7 +36,10 @@ if (!process.env.ANTHROPIC_API_KEY) {
   process.exit(2)
 }
 
-const gold = JSON.parse(fs.readFileSync(path.join(ROOT, 'test_data/tprm/gold.json'), 'utf-8')) as GoldAnswers & GoldAnalysis
+interface GoldRemediation {
+  remediation: { required: { ref: string; severity: string }[]; must_not_create: string[] }
+}
+const gold = JSON.parse(fs.readFileSync(path.join(ROOT, 'test_data/tprm/gold.json'), 'utf-8')) as GoldAnswers & GoldAnalysis & GoldRemediation
 const llm = new AnthropicTprmLlm()
 const prompts = { ...ANALYSIS_PROMPTS, ...RUN_PROMPT_VERSIONS }
 
@@ -46,6 +50,7 @@ interface RunResult {
   answers: AnswerScore
   usage: LlmUsage
   drafted: DraftedAnswer[]
+  remediation: { created: string[]; missing: string[]; forbidden: string[]; wrongSeverity: string[] }
 }
 
 function addUsage(all: LlmUsage[]): LlmUsage {
@@ -86,6 +91,18 @@ async function runOnce(): Promise<RunResult> {
   const results = await answerAllQuestions(llm, ev, findings, questions, { asOf: AS_OF })
   const drafted = results.map((r) => r.answer)
 
+  // Remediation is rule-based on the model's findings, so it inherits extraction errors
+  await generateRemediation(store, { supplierId: ctx.supplierId, requestId: ctx.requestId, userId: null, asOf: AS_OF })
+  const items = await store.listRemediation(ctx.requestId)
+  const sevOf = new Map(items.map((i) => [i.title.split(':')[0], i.severity]))
+  const goldRem = gold.remediation
+  const remediation = {
+    created: [...sevOf.keys()],
+    missing: goldRem.required.filter((r) => !sevOf.has(r.ref)).map((r) => r.ref),
+    forbidden: goldRem.must_not_create.filter((ref) => sevOf.has(ref)),
+    wrongSeverity: goldRem.required.filter((r) => sevOf.has(r.ref) && sevOf.get(r.ref) !== r.severity).map((r) => r.ref),
+  }
+
   return {
     seconds: (Date.now() - started) / 1000,
     analysis: scoreAnalysis(gold, docs),
@@ -93,6 +110,7 @@ async function runOnce(): Promise<RunResult> {
     answers: scoreAnswers(gold, drafted),
     usage: addUsage([...analyzed.flatMap((a) => a.usage), ...results.flatMap((r) => r.usage)]),
     drafted,
+    remediation,
   }
 }
 
@@ -117,6 +135,7 @@ function headline(r: RunResult): [string, string][] {
     ['Doc classification', pct(r.analysis.classification.correct, r.analysis.classification.total)],
     ['Findings field accuracy (per record)', pct(fa.c, fa.t)],
     ['Summary coverage of known exceptions', pct(r.analysis.summaryCoverage.correct, r.analysis.summaryCoverage.total)],
+    ['Remediation items (gold: PT-01, PT-03, CC6.2, CC8.1)', `${list(r.remediation.created)}; missing ${list(r.remediation.missing)}; must-not-create ${list(r.remediation.forbidden)}; wrong severity ${list(r.remediation.wrongSeverity)}`],
   ]
 }
 

@@ -86,4 +86,6 @@ export const EVENT_LABEL: Record<string, string> = {
   answer_edited: 'Answer edited and approved',
   conflict_resolved: 'Conflict resolved',
   answer_rejected: 'Answer rejected',
+  remediation_generated: 'Remediation items generated',
+  remediation_updated: 'Remediation item updated',
 }

@@ -24,6 +24,8 @@ app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? (process.env.ALLOWED_ORIGIN ?? false)
     : true,
+  // Lets the browser read the export filename on cross-origin downloads
+  exposedHeaders: ['Content-Disposition'],
 }))
 app.use(morgan('dev'))
 app.use(express.json())

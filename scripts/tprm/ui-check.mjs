@@ -137,12 +137,30 @@ async function main() {
   await page.getByText('Approved', { exact: true }).first().waitFor()
   ok('ready answer approved')
 
+  await page.getByRole('tab', { name: 'Remediation' }).click()
+  await page.getByRole('button', { name: 'Generate from findings' }).click()
+  await page.getByTestId('remediation-item').nth(1).waitFor()
+  const remTexts = await page.getByTestId('remediation-item').allTextContents()
+  check(remTexts.length === 2 && remTexts[0].includes('PT-01') && remTexts[1].includes('PT-03'), 'remediation: PT-01 and PT-03 generated')
+  check(remTexts[0].includes('critical') && remTexts[0].includes('Overdue') && remTexts[0].includes('Due 2026-09-05'), 'remediation: PT-01 critical, due 2026-09-05 by policy SLA, overdue')
+  check(await page.getByText('Due dates use your policy SLA.').isVisible(), 'remediation: policy SLA used')
+  await page.getByTestId('remediation-item').first().getByLabel('Status').selectOption('in_progress')
+  await page.getByTestId('remediation-item').first().getByLabel('Jira key').fill('SEC-42')
+  await page.getByTestId('remediation-item').first().getByLabel('Jira key').blur()
+  await page.waitForTimeout(500)
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Jira CSV' }).click()])
+  const csv = fs.readFileSync(await download.path(), 'utf-8')
+  check(csv.startsWith('"Summary","Description","Priority","Assignee","Due Date","Labels"') && csv.includes('"Highest"'), 'remediation: Jira CSV downloaded')
+  check(/^remediation-\d{4}-\d{2}-\d{2}\.csv$/.test(download.suggestedFilename()), `remediation: dated filename (${download.suggestedFilename()})`)
+  await page.screenshot({ path: path.join(OUT, 'desktop-remediation.png'), fullPage: true })
+
   await page.getByRole('tab', { name: 'Activity' }).click()
   await page.getByTestId('activity-event').first().waitFor()
   const activity = await page.getByTestId('activity-event').allTextContents()
   check(activity.some((t) => t.includes('Conflict resolved') && t.includes('IAM-01')), 'activity shows the conflict resolution')
   check(activity.some((t) => t.includes('Answer approved')), 'activity shows the approval')
   check(activity.some((t) => t.includes('AI flagged a conflict')), 'activity shows the AI conflict flag')
+  check(activity.filter((t) => t.includes('Remediation item updated')).length === 2, 'activity shows the remediation updates')
 
   await page.goto(`${PAGE}?tab=answers`)
   await page.getByTestId('answer-card').nth(21).waitFor()
@@ -152,7 +170,7 @@ async function main() {
 
   // ── Mobile 375px ─────────────────────────────────────────────────────────
   const m = await newPage(browser, { width: 375, height: 812 })
-  for (const tab of ['documents', 'answers', 'activity']) {
+  for (const tab of ['documents', 'answers', 'remediation', 'activity']) {
     await m.page.goto(`${PAGE}?tab=${tab}`)
     await m.page.getByRole('heading', { name: 'Security review' }).waitFor()
     await m.page.waitForLoadState('networkidle')

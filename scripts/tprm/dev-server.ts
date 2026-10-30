@@ -34,6 +34,7 @@ if (real && !process.env.ANTHROPIC_API_KEY) {
 const store = new MemorySecurityReviewStore()
 store.suppliers.set(DEV_USER_ID, 'sup-dev')
 store.requests.set(DEV_REQUEST_ID, 'sup-dev')
+store.contacts.set('sup-dev', { id: '00000000-0000-4000-8000-0000000000c1', name: 'Daniel Ortiz' })
 
 const devAuth: RequestHandler = (req, res, next) => {
   if (req.header('authorization') !== `Bearer ${DEV_TOKEN}`) {
@@ -45,7 +46,7 @@ const devAuth: RequestHandler = (req, res, next) => {
 }
 
 const app = express()
-app.use(cors())
+app.use(cors({ exposedHeaders: ['Content-Disposition'] }))
 app.use(express.json())
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 app.use('/api/security-review', createSecurityReviewRouter({

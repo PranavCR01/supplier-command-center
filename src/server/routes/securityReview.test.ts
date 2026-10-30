@@ -422,3 +422,56 @@ describe('human review', () => {
     assert.equal(store.answers.find((a) => a.id === ready.id)!.review_status, 'pending')
   })
 })
+
+describe('remediation', () => {
+  // A pen test with a critical finding still open, extracted by the fake model
+  const pentestLlm = () => fakePipelineLlm({
+    [PROMPTS.extract]: { json: { doc_type: 'pentest_summary', doc_type_reason: 'x', findings: [
+      { kind: 'pentest_finding', ref: 'PT-01', title: 'VPN firmware RCE', stated_severity: 'Critical', status: 'open', detail: null,
+        location: { page: 3, sheet: null, row: null }, quote: 'the finding remains open, 45 days after it was reported' },
+      { kind: 'pentest_finding', ref: 'PT-02', title: 'Stored XSS', stated_severity: 'High', status: 'remediated', detail: null,
+        location: { page: 2, sheet: null, row: null }, quote: 'Stored cross-site scripting in customer portal ticket comments' },
+    ] } },
+  })
+  const post = (p: string, user = 'user-acme') => fetch(`${base}${p}`, { method: 'POST', headers: { 'x-test-user': user } })
+  const patchItem = (id: string, body: unknown, user = 'user-acme') => fetch(`${base}/remediation/${id}`, {
+    method: 'PATCH', headers: { 'x-test-user': user, 'content-type': 'application/json' }, body: JSON.stringify(body),
+  })
+
+  async function generated() {
+    llm = pentestLlm()
+    await upload(sample('acme_pentest_summary_2026.pdf'), 'pt.pdf')
+    await post('/requests/req-1/analyze')
+    const res = await post('/requests/req-1/remediation/generate')
+    return (await res.json()) as { items: { id: string; title: string; severity: string; due_date: string; overdue: boolean }[] }
+  }
+
+  test('generate from findings, list with overdue flag, update and log', async () => {
+    const { items } = await generated()
+    assert.deepEqual(items.map((i) => [i.title.split(':')[0], i.severity, i.due_date]), [['PT-01', 'critical', '2026-09-05']])
+    const list = await (await get('/requests/req-1/remediation')).json() as { items: { overdue: boolean }[] }
+    assert.equal(list.items[0].overdue, new Date().toISOString().slice(0, 10) > '2026-09-05')
+
+    const res = await patchItem(items[0].id, { status: 'in_progress', external_key: 'SEC-1' })
+    assert.equal(res.status, 200)
+    assert.equal(store.remediation[0].status, 'in_progress')
+    assert.equal(store.events.at(-1)!.event_type, 'remediation_updated')
+    assert.equal((await patchItem(items[0].id, { status: 'closed' })).status, 400)
+    assert.equal((await patchItem(items[0].id, { severity: 'low' })).status, 400, 'severity is set by rule, not editable')
+    assert.equal((await patchItem(items[0].id, {})).status, 400)
+    assert.equal((await patchItem(items[0].id, { status: 'done' }, 'user-other')).status, 404)
+  })
+
+  test('CSV and JSON export; other suppliers refused', async () => {
+    await generated()
+    const csv = await get('/requests/req-1/remediation/export?format=csv')
+    assert.match(csv.headers.get('content-type') ?? '', /text\/csv/)
+    assert.match(csv.headers.get('content-disposition') ?? '', /attachment; filename="remediation-.*\.csv"/)
+    const text = await csv.text()
+    assert.match(text, /^"Summary","Description","Priority","Assignee","Due Date","Labels"\r\n"PT-01: VPN firmware RCE"/)
+    const json = await (await get('/requests/req-1/remediation/export?format=json')).json() as { items: unknown[] }
+    assert.equal(json.items.length, 1)
+    assert.equal((await get('/requests/req-1/remediation/export', 'user-other')).status, 404)
+    assert.equal((await post('/requests/req-1/remediation/generate', 'user-other')).status, 404)
+  })
+})

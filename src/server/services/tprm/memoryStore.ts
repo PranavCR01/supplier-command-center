@@ -1,8 +1,10 @@
 import { randomUUID } from 'crypto'
 import type {
-  ActivityEvent, DocumentFinding, DocumentUnitRow, DraftedAnswer, QuestionnaireAnswerRow, QuestionnaireRun, SecurityDocument,
+  ActivityEvent, DocumentFinding, DocumentUnitRow, DraftedAnswer, QuestionnaireAnswerRow, QuestionnaireRun, RemediationItem, SecurityDocument,
 } from '../../../types/index.js'
-import { NewActivityEvent, NewFinding, NewRun, NewSecurityDocument, NewUnit, SecurityReviewStore } from './store.js'
+import {
+  NewActivityEvent, NewFinding, NewRemediationItem, NewRun, NewSecurityDocument, NewUnit, RemediationPatch, SecurityReviewStore,
+} from './store.js'
 
 // In-memory SecurityReviewStore for tests and for running the pipeline/evals without a database.
 export class MemorySecurityReviewStore implements SecurityReviewStore {
@@ -13,6 +15,8 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
   findings: DocumentFinding[] = []
   runs: QuestionnaireRun[] = []
   answers: QuestionnaireAnswerRow[] = []
+  remediation: RemediationItem[] = []
+  contacts = new Map<string, { id: string; name: string }>()   // supplierId -> owner contact
   files = new Map<string, Uint8Array>()
   events: ActivityEvent[] = []
   failUploads = false
@@ -143,6 +147,37 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
     const row = this.answers.find((a) => a.id === id)
     if (!row) throw new Error(`answer ${id} not found`)
     Object.assign(row, patch, { updated_at: new Date().toISOString() })
+  }
+
+  async getOwnerContact(supplierId: string) {
+    return this.contacts.get(supplierId) ?? null
+  }
+
+  async listRemediation(requestId: string) {
+    return this.remediation.filter((r) => r.request_id === requestId).map((r) => ({ ...r }))
+  }
+
+  async getRemediation(id: string, supplierId: string) {
+    const row = this.remediation.find((r) => r.id === id && r.supplier_id === supplierId)
+    return row ? { ...row } : null
+  }
+
+  async insertRemediation(items: NewRemediationItem[]) {
+    const now = new Date().toISOString()
+    for (const item of items) {
+      if (item.finding_id && this.remediation.some((r) => r.finding_id === item.finding_id)) throw new Error('duplicate finding_id')
+      this.remediation.push({ ...item, id: randomUUID(), created_at: now, updated_at: now })
+    }
+  }
+
+  async updateRemediation(id: string, patch: RemediationPatch) {
+    const row = this.remediation.find((r) => r.id === id)
+    if (!row) throw new Error(`remediation ${id} not found`)
+    Object.assign(row, patch, { updated_at: new Date().toISOString() })
+  }
+
+  async deleteRemediation(ids: string[]) {
+    this.remediation = this.remediation.filter((r) => !ids.includes(r.id))
   }
 
   async downloadOriginal(path: string) {

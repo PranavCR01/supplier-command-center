@@ -36,8 +36,9 @@ export class FakeTprmLlm implements TprmLlm {
 }
 
 // A fake for the whole pipeline on the sample documents (evidence ids D1-D5 by filename):
-// every question gets the SOC 2 VPN passage and a supported "yes"; IAM-01 gets a policy vs
-// pen test conflict. Exercises every write path without calling the API.
+// the pen test yields two open findings (PT-01 Critical, PT-03 High) and the policy is typed as a
+// policy, so remediation has something to work with; every question gets the SOC 2 VPN passage
+// and a supported "yes"; IAM-01 gets a policy vs pen test conflict. No API calls.
 export function fakePipelineLlm(overrides: Record<string, FakeReply> = {}, delayMs = 0): FakeTprmLlm {
   const passage = (document: string, page: number, quote: string, stance: string) =>
     ({ document, location: { page, sheet: null, row: null }, quote, stance, note: '' })
@@ -45,7 +46,20 @@ export function fakePipelineLlm(overrides: Record<string, FakeReply> = {}, delay
   const POLICY = passage('D2', 3, 'Multi-factor authentication is enforced for all interactive access to Acme systems', 'supports')
   const PENTEST = passage('D3', 3, 'accepts a username and password without requiring multi-factor authentication', 'contradicts')
   return new FakeTprmLlm({
-    [PROMPTS.extract]: { json: { doc_type: 'other', doc_type_reason: 'fake', findings: [] } },
+    [PROMPTS.extract]: (_input, context) => {
+      if (context.includes('filename="acme_pentest_summary_2026.pdf"')) {
+        const finding = (ref: string, title: string, severity: string, quote: string) => ({
+          kind: 'pentest_finding', ref, title, stated_severity: severity, status: 'open', detail: null,
+          location: { page: 3, sheet: null, row: null }, quote,
+        })
+        return { json: { doc_type: 'pentest_summary', doc_type_reason: 'fake', findings: [
+          finding('PT-01', 'VPN appliance firmware vulnerable to remote code execution', 'Critical', 'the finding remains open, 45 days after it was reported'),
+          finding('PT-03', 'Administrative portal without multi-factor authentication', 'High', 'accepts a username and password without requiring multi-factor authentication'),
+        ] } }
+      }
+      const isPolicy = context.includes('filename="acme_infosec_access_control_policy_v3.2.pdf"')
+      return { json: { doc_type: isPolicy ? 'security_policy' : 'other', doc_type_reason: 'fake', findings: [] } }
+    },
     [PROMPTS.summarize]: { json: { headline: 'fake', top_findings: [], key_exceptions: [], takeaways: [] } },
     [EVIDENCE_PROMPTS.gather]: (input) => ({ json: { passages: input?.includes('ref="IAM-01"') ? [POLICY, PENTEST] : [VPN] } }),
     [EVIDENCE_PROMPTS.conflict]: { json: { explanation: 'clash', conflict: true, a: 1, b: 2 } },

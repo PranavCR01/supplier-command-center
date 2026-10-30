@@ -247,6 +247,27 @@ export interface QuestionnaireAnswerRow extends DraftedAnswer {
   updated_at: string
 }
 
+export type RemediationSeverity = 'critical' | 'high' | 'medium' | 'low'
+export type RemediationStatus = 'open' | 'in_progress' | 'done' | 'risk_accepted'
+
+export interface RemediationItem {
+  id: string
+  supplier_id: string
+  request_id: string | null
+  finding_id: string | null
+  title: string                // starts with the finding ref, e.g. "PT-01: ..."
+  description: string | null
+  severity: RemediationSeverity
+  owner_contact_id: string | null
+  owner_name: string | null
+  status: RemediationStatus
+  due_date: string | null      // YYYY-MM-DD
+  source: 'ai' | 'user'        // 'ai' = generated from findings by rule
+  external_key: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type FindingKind =
   | 'control' | 'control_exception' | 'carve_out' | 'pentest_finding'
   | 'phishing_metric' | 'policy_statement' | 'access_review_exception'

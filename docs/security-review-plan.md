@@ -28,8 +28,8 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 5 | Eval script (`npm run eval:tprm`) — first checkpoint: numbers for a slide | Done — `docs/eval/2026-10-30.md` |
 | 6 | Question run route + SSE progress + persistence | Done in code + in-memory tests; **Supabase check pending (run locally, below)** |
 | 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | Done — `npm run tprm:ui-check` |
-| 8 | Remediation items + Jira-style CSV/JSON export | **Next** |
-| 9 | Final response assembled from Ready answers only | |
+| 8 | Remediation items + Jira-style CSV/JSON export | Done |
+| 9 | Final response assembled from Ready answers only | **Next** |
 | 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | |
 
 **Step 6 local check (needs the real DB; not possible in the cloud session):**
@@ -105,6 +105,24 @@ Remaining misses, stated plainly:
   calls this an auditor exception, not a conflict; the model's reading is defensible and resembles VULN-02,
   which gold labels a conflict. Gold not changed; label worth a second look by a human.
 - Every prompt change above was judged on the same 22 questions it will be scored on (circular).
+
+### Step 8: remediation
+
+Rule-based, no model call (`services/tprm/remediation.ts`), from step 2 findings: open Critical/High pen
+test findings and every SOC 2 exception (high by rule). Due date = finding date + the vendor's policy SLA
+(parsed from the policy text, e.g. §6.3 15/30/90 days; if absent, 15/30/90 labelled "default SLA").
+Finding date = "reported … on <date>" in the finding's own paragraph, else the document's issue date
+(else its latest full date). On the samples: PT-01 due 2026-09-05 (Aug 21 + 15), PT-03 2026-10-04
+(issued Sep 4 + 30), CC6.2/CC8.1 2026-09-27 (opinion Aug 28 + 30) — all overdue as of 2026-10-30.
+Owner = technical contact, else primary. Regenerating replaces untouched generated items and keeps
+anything a person started, closed or linked to Jira (no duplicates). Overdue is computed at read time.
+API: `POST /requests/:id/remediation/generate`, `GET /requests/:id/remediation`, `PATCH /remediation/:id`
+{status, owner_name, due_date, external_key}, `GET /requests/:id/remediation/export?format=csv|json`
+(Jira columns Summary, Description, Priority [Highest/High/Medium/Low], Assignee, Due Date, Labels;
+cells quoted, leading `= + - @` neutralised against spreadsheet formula injection).
+Bugs caught by tests: a finding-ID regex that missed `PT-04` let PT-01's report date leak into PT-03's
+due date; cross-origin downloads lost their filename until `Content-Disposition` was exposed via CORS
+(also fixed in production `index.ts`). The eval now also scores generated items against gold.
 
 ### Step 7: security review page
 

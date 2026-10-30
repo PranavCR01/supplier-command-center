@@ -7,10 +7,12 @@ import ActivityTab from '@/components/security-review/ActivityTab'
 import AnswersTab from '@/components/security-review/AnswersTab'
 import DocumentsTab from '@/components/security-review/DocumentsTab'
 import EvidenceDrawer, { EvidenceTarget } from '@/components/security-review/EvidenceDrawer'
+import RemediationTab from '@/components/security-review/RemediationTab'
 
 const TABS = [
   { key: 'documents', label: 'Documents' },
   { key: 'answers', label: 'Answers' },
+  { key: 'remediation', label: 'Remediation' },
   { key: 'activity', label: 'Activity' },
 ] as const
 type TabKey = typeof TABS[number]['key']
@@ -61,6 +63,7 @@ export default function SecurityReviewPage() {
 
       {tab === 'documents' && <DocumentsTab requestId={requestId} onOpenEvidence={setEvidence} />}
       {tab === 'answers' && <AnswersTab requestId={requestId} onOpenEvidence={setEvidence} />}
+      {tab === 'remediation' && <RemediationTab requestId={requestId} />}
       {tab === 'activity' && <ActivityTab requestId={requestId} />}
 
       <EvidenceDrawer target={evidence} onClose={closeEvidence} />

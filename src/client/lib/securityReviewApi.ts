@@ -5,6 +5,8 @@ import type {
   Locator,
   QuestionnaireAnswerRow,
   QuestionnaireRun,
+  RemediationItem,
+  RemediationStatus,
   SecurityDocType,
   SecurityDocument,
 } from '../../types'
@@ -53,6 +55,8 @@ export type ReviewBody =
   | { action: 'resolve'; choice: 'a' | 'b' | 'custom'; final_text: string; note?: string }
   | { action: 'reject'; note?: string }
 
+export type RemediationRow = RemediationItem & { overdue: boolean }
+
 export const securityReviewApi = {
   listDocuments: (requestId: string) =>
     call<{ documents: SecurityDocument[] }>(`/requests/${requestId}/documents`).then((r) => r.documents),
@@ -93,6 +97,29 @@ export const securityReviewApi = {
 
   review: (answerId: string, body: ReviewBody) =>
     call<{ answer: QuestionnaireAnswerRow }>(`/answers/${answerId}`, json('PATCH', body)).then((r) => r.answer),
+
+  remediation: (requestId: string) =>
+    call<{ as_of: string; items: RemediationRow[] }>(`/requests/${requestId}/remediation`),
+
+  generateRemediation: (requestId: string) =>
+    call<{ result: { created: number; kept: number; sla: { basis: 'policy' | 'default' } }; items: RemediationRow[] }>(
+      `/requests/${requestId}/remediation/generate`, { method: 'POST' }),
+
+  updateRemediation: (id: string, patch: { status?: RemediationStatus; external_key?: string | null }) =>
+    call<{ item: RemediationRow }>(`/remediation/${id}`, json('PATCH', patch)).then((r) => r.item),
+
+  // Downloads need the auth header, so fetch the file and save it from a blob URL
+  downloadRemediation: async (requestId: string, format: 'csv' | 'json') => {
+    const res = await fetch(`${BASE}/requests/${requestId}/remediation/export?format=${format}`, { headers: await authHeaders() })
+    if (!res.ok) throw new ApiError(`Export failed (${res.status})`, res.status)
+    const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? `remediation.${format}`
+    const url = URL.createObjectURL(await res.blob())
+    const a = document.createElement('a')
+    a.href = url
+    a.download = name
+    a.click()
+    URL.revokeObjectURL(url)
+  },
 
   activity: (requestId: string) =>
     call<{ events: ActivityEvent[] }>(`/requests/${requestId}/activity`).then((r) => r.events),

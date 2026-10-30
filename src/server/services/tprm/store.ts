@@ -7,6 +7,7 @@ import type {
   DraftedAnswer,
   QuestionnaireAnswerRow,
   QuestionnaireRun,
+  RemediationItem,
   Locator,
   SecurityDocRole,
   SecurityDocType,
@@ -35,6 +36,9 @@ export interface NewUnit {
 export type NewFinding = Omit<DocumentFinding, 'id' | 'supplier_id' | 'document_id' | 'created_at'>
 
 export type NewRun = Pick<QuestionnaireRun, 'supplier_id' | 'request_id' | 'questionnaire_doc_id' | 'model' | 'prompt_versions' | 'as_of'>
+
+export type NewRemediationItem = Omit<RemediationItem, 'id' | 'created_at' | 'updated_at'>
+export type RemediationPatch = Partial<Pick<RemediationItem, 'status' | 'owner_name' | 'due_date' | 'external_key'>>
 
 export interface NewActivityEvent {
   supplier_id: string
@@ -76,6 +80,14 @@ export interface SecurityReviewStore {
   listAnswers(runId: string): Promise<QuestionnaireAnswerRow[]>
   getAnswer(id: string, supplierId: string): Promise<QuestionnaireAnswerRow | null>
   updateAnswer(id: string, patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'>): Promise<void>
+
+  // Technical contact (else primary) owns generated remediation items by default
+  getOwnerContact(supplierId: string): Promise<{ id: string; name: string } | null>
+  listRemediation(requestId: string): Promise<RemediationItem[]>
+  getRemediation(id: string, supplierId: string): Promise<RemediationItem | null>
+  insertRemediation(items: NewRemediationItem[]): Promise<void>
+  updateRemediation(id: string, patch: RemediationPatch): Promise<void>
+  deleteRemediation(ids: string[]): Promise<void>
 
   uploadOriginal(path: string, data: Uint8Array, mimeType: string): Promise<void>
   downloadOriginal(path: string): Promise<Uint8Array>
@@ -215,6 +227,44 @@ export class SupabaseSecurityReviewStore implements SecurityReviewStore {
   async updateAnswer(id: string, patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'>): Promise<void> {
     const { error } = await this.db.from('questionnaire_answers').update(patch).eq('id', id)
     if (error) throw new Error(`update questionnaire_answers failed: ${error.message}`)
+  }
+
+  async getOwnerContact(supplierId: string): Promise<{ id: string; name: string } | null> {
+    const { data } = await this.db
+      .from('supplier_contacts').select('id, name, type, is_primary').eq('supplier_id', supplierId)
+    const contacts = (data ?? []) as { id: string; name: string; type: string | null; is_primary: boolean | null }[]
+    const pick = contacts.find((c) => c.type === 'technical') ?? contacts.find((c) => c.is_primary) ?? contacts[0]
+    return pick ? { id: pick.id, name: pick.name } : null
+  }
+
+  async listRemediation(requestId: string): Promise<RemediationItem[]> {
+    const { data, error } = await this.db
+      .from('remediation_items').select('*').eq('request_id', requestId).order('created_at')
+    if (error) throw new Error(`list remediation_items failed: ${error.message}`)
+    return (data ?? []) as RemediationItem[]
+  }
+
+  async getRemediation(id: string, supplierId: string): Promise<RemediationItem | null> {
+    const { data } = await this.db
+      .from('remediation_items').select('*').eq('id', id).eq('supplier_id', supplierId).maybeSingle()
+    return (data as RemediationItem | null) ?? null
+  }
+
+  async insertRemediation(items: NewRemediationItem[]): Promise<void> {
+    if (items.length === 0) return
+    const { error } = await this.db.from('remediation_items').insert(items)
+    if (error) throw new Error(`insert remediation_items failed: ${error.message}`)
+  }
+
+  async updateRemediation(id: string, patch: RemediationPatch): Promise<void> {
+    const { error } = await this.db.from('remediation_items').update(patch).eq('id', id)
+    if (error) throw new Error(`update remediation_items failed: ${error.message}`)
+  }
+
+  async deleteRemediation(ids: string[]): Promise<void> {
+    if (ids.length === 0) return
+    const { error } = await this.db.from('remediation_items').delete().in('id', ids)
+    if (error) throw new Error(`delete remediation_items failed: ${error.message}`)
   }
 
   async downloadOriginal(path: string): Promise<Uint8Array> {
