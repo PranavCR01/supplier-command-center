@@ -1,0 +1,7 @@
+# Documents are binary: never convert line endings. The sample PDFs are plain ASCII, so Git
+# would otherwise treat them as text and, on Windows (core.autocrlf), rewrite LF to CRLF,
+# which shifts the PDFs' internal byte offsets.
+*.pdf  binary
+*.xlsx binary
+*.png  binary
+*.webm binary
