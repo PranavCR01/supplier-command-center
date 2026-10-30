@@ -125,7 +125,20 @@ Remaining misses, stated plainly:
   (1,093-token prompt, cache read/write 0) and comments corrected; contextBuilder cert fallback fixed
   and tested (`services/certSelection.ts`); `engines.node >=22.13` added for pdfjs-dist.
 - **Recording:** `npm run tprm:record-demo` records a captioned walkthrough with the real model
-  (Playwright video, ~4 min, `demo-output/security-review-demo.webm`, git-ignored).
+  (Playwright video, ~3 min, `demo-output/security-review-demo.webm`, git-ignored; waits not trimmed).
+  That live run flagged **6 conflicts** (the eval runs flag 4–5): more false positives, still fail-safe.
+  Don't quote a conflict count in a live demo; say "the seeded conflicts are always caught" (true in
+  every run so far) and show IAM-01.
+- **Final eval** (`docs/eval/2026-10-30-final.md`, after all steps): 0 unsafe Ready · conflicts 3/3 ·
+  1 false conflict (IAM-02) · Needs Evidence 6/6 · readiness 19/22 · answers 19/22 · remediation items
+  exactly match gold (PT-01, PT-03, CC6.2, CC8.1) · findings 37/37 · summaries 7/7.
+
+What is left for Pranav (cannot be done from the cloud session):
+1. Supabase: run `docs/migrations/2026-10-31_security_review_additions.sql`, then
+   `npm run tprm:check-supabase -- <request_id>` (steps under Status above).
+2. Optional: `docs/migrations/2026-10-31_seed_clearfield_questionnaire.sql` to add req_006 to an existing account.
+3. Before merging: Railway Node version (>= 22.13), ESLint config, `npm audit` items, review the two
+   added readiness rules (UNSUPPORTED_NUMBER, GAP_DISCLOSED) and the IAM-04 gold label.
 
 ### Step 9: final response
 
