@@ -1,5 +1,14 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2026-04-19 | Phase: Post-launch — Demo Ready
+> Last updated: 2026-10-30 | Phase: Building Security Review (vendor-side TPRM) on branch `claude/loving-rubin-fi9o7n`
+
+## CURRENT WORK — read first
+Building the Security Review feature for the SAFE Security FDE interview (Mon Nov 2, 2026).
+**Read `docs/security-review-plan.md` before doing anything** — it has the status table, pipeline,
+prompts, readiness rules, eval design, decisions, cut order, and SAFE mapping.
+Sample data and gold labels: `test_data/tprm/README.md`, `test_data/tprm/gold.json`.
+Rules: work only on `claude/loving-rubin-fi9o7n`; never merge or touch production until Pranav says so;
+run tests after every step (`npm test`, `npm run tprm:verify-samples`, both `tsc` checks) and confirm
+tests can fail.
 
 ## What we're building
 AI-powered supplier portal — the "other side" of Valorant's Astra procurement platform.
@@ -119,8 +128,15 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 | 2026-04-19 | Logo/favicon: public/favicon.svg | Navy rounded square, white building, blue lightning bolt; shown in sidebar + auth pages |
 | 2026-04-19 | MAX_OUTPUT_TOKENS raised to 2500 | Longer structured drafts with tables were being cut off at 1500 |
 | 2026-04-19 | Dynamic deadline countdown in RequestCard | Math.ceil days remaining; red≤7d, amber≤14d, slate≤30d, slate-400>30d |
+| 2026-10-30 | Security review: pdfjs-dist + exceljs, no third-party parsing API | Deterministic page text for quote checks; no fourth-party exposure of vendor docs |
+| 2026-10-30 | Own quote+locator citations, not Claude Citations API | Citations API is incompatible with structured outputs; code-verified quotes make hallucinated citations catchable |
+| 2026-10-30 | Evidence gathering separated from answer drafting | Drafter can't skip contradicting documents, so conflicts surface |
+| 2026-10-30 | Additive migration run on live Supabase | New tables only; existing code unaffected (see docs/migrations/) |
 
 ## Known issues (fix before demo)
+- [ ] "PDF parsing ✓" in Slice 2 is inaccurate: attachments were never parsed (security review adds real parsing)
+- [ ] Prompt caching likely never fires on draft path: Haiku 4.5 needs ≥4,096-token prefix; system prompt is ~1,100
+- [ ] contextBuilder.ts `.slice(0, 5) || ...` fallback never runs (empty array is truthy)
 - [x] Sidebar "Loading..." persists after seed until reload (fix: window.location.reload() after seedAcme)
 - [x] Settings shows cached email from previous session (fix: fresh supabase.auth.getUser() on mount)
 - [x] AI draft shows [FLAGGED] placeholders for missing case studies (fix: update system prompt + seed data)
