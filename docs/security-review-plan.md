@@ -3,7 +3,7 @@
 > Source of truth for the security review feature. Read this before working on it.
 > Branch: `claude/loving-rubin-fi9o7n`. Do not merge to `main` until Pranav says so.
 > Deadline: working end to end by **Sunday Nov 1, 2026 afternoon** (backup video + slides).
-> Interview: Mon Nov 2, 8:00 AM PT with Oliver Moore (VP FDE, SAFE Security).
+> SAFE product and domain background: `docs/safe-context.md`.
 
 ## Why this exists
 
@@ -12,8 +12,8 @@ pen tests and policies on the **buyer** side. This feature is the **vendor** sid
 a security questionnaire, uploads its evidence, and the app drafts every answer with citations it can
 defend — running the same checks a buyer's agent would, so the vendor finds contradictions first.
 
-Oliver asked about "the use of AI vs. technical understanding to challenge and adapt AI-based
-responses." The answer is the challenge layer below: deterministic checks first, a second model
+The core question this feature answers: how do you use technical understanding to challenge and
+adapt AI-based responses? The answer is the challenge layer below: deterministic checks first, a second model
 opinion second, the model's own confidence last, and a human for anything unresolved.
 
 ## Status
@@ -199,7 +199,7 @@ on desktop, stacked at 375px) · Remediation · Activity · Response. Evidence d
 with the quote highlighted; "Open original" uses the signed URL + `#page=N` (not supported on iOS
 Safari, hence the text drawer is primary). Follow `design-system/suppliercommandcenter/MASTER.md`.
 
-## How it maps to SAFE (for slides — say "analogous to", not "same as")
+## How it maps to SAFE (analogous capabilities, not the same product)
 
 | Feature | SAFE parallel |
 |---|---|
@@ -212,8 +212,8 @@ Safari, hence the text drawer is primary). Follow `design-system/suppliercommand
 | Remediation + Jira export | CTEM "track remediation to verified closure"; ITSM integrations |
 | Gold set, field accuracy, versioned prompts | SAFE's published approach: gold standards, field accuracy, prompts versioned like code |
 
-Pitch: *"SAFE's agents check vendor evidence on the buyer side. This runs the same checks on the vendor
-side, so the vendor finds the MFA contradiction before the buyer's agent does."*
+In one line: SAFE's agents check vendor evidence on the buyer side; this runs the same kind of checks
+on the vendor side, so the vendor finds the MFA contradiction before the buyer does.
 
 ## Environment notes
 

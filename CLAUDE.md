@@ -2,9 +2,10 @@
 > Last updated: 2026-10-30 | Phase: Building Security Review (vendor-side TPRM) on branch `claude/loving-rubin-fi9o7n`
 
 ## CURRENT WORK — read first
-Building the Security Review feature for the SAFE Security FDE interview (Mon Nov 2, 2026).
+Building the Security Review feature (vendor-side TPRM, modeled on SAFE Security's TPRM product).
 **Read `docs/security-review-plan.md` before doing anything** — it has the status table, pipeline,
 prompts, readiness rules, eval design, decisions, cut order, and SAFE mapping.
+SAFE product and domain background (agents, how they evaluate AI, SOC 2/TPRM primer): `docs/safe-context.md`.
 Sample data and gold labels: `test_data/tprm/README.md`, `test_data/tprm/gold.json`.
 Rules: work only on `claude/loving-rubin-fi9o7n`; never merge or touch production until Pranav says so;
 run tests after every step (`npm test`, `npm run tprm:verify-samples`, both `tsc` checks) and confirm
