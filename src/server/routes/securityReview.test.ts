@@ -475,3 +475,37 @@ describe('remediation', () => {
     assert.equal((await post('/requests/req-1/remediation/generate', 'user-other')).status, 404)
   })
 })
+
+describe('final response', () => {
+  async function runAndReview() {
+    llm = fakePipelineLlm()
+    await fetch(`${base}/requests/req-1/documents/samples`, { method: 'POST', headers: { 'x-test-user': 'user-acme' } })
+    await (await fetch(`${base}/requests/req-1/runs`, { method: 'POST', headers: { 'x-test-user': 'user-acme' } })).text()
+    const gov02 = store.answers.find((a) => a.question_ref === 'GOV-02')!
+    await fetch(`${base}/answers/${gov02.id}`, {
+      method: 'PATCH', headers: { 'x-test-user': 'user-acme', 'content-type': 'application/json' }, body: JSON.stringify({ action: 'reject' }),
+    })
+  }
+
+  test('only releasable answers; the unresolved conflict and the rejected answer are withheld', async () => {
+    await runAndReview()
+    const r = await (await get('/requests/req-1/response')).json() as { total: number; included: { ref: string }[]; withheld: { ref: string; why: string }[] }
+    assert.equal(r.total, 22)
+    assert.equal(r.included.length, 20)
+    assert.deepEqual(r.withheld.map((w) => [w.ref, w.why]), [['GOV-02', 'rejected'], ['IAM-01', 'conflict']])
+  })
+
+  test('xlsx and markdown exports are logged; no run yet is a 404; other suppliers refused', async () => {
+    assert.equal((await get('/requests/req-1/response')).status, 404)
+    await runAndReview()
+    const x = await get('/requests/req-1/response/export?format=xlsx')
+    assert.equal(x.status, 200)
+    assert.match(x.headers.get('content-disposition') ?? '', /clearfield_vendor_security_questionnaire_response\.xlsx/)
+    assert.equal(Buffer.from(await x.arrayBuffer()).subarray(0, 2).toString(), 'PK')
+    const md = await (await get('/requests/req-1/response/export?format=md')).text()
+    assert.match(md, /20 of 22 questions answered/)
+    assert.ok(!md.includes('GOV-02 —') && !md.includes('IAM-01 —'), 'withheld answers never exported')
+    assert.deepEqual(store.events.filter((e) => e.event_type === 'response_exported').map((e) => e.payload.format), ['xlsx', 'md'])
+    assert.equal((await get('/requests/req-1/response', 'user-other')).status, 404)
+  })
+})

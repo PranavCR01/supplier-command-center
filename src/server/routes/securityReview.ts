@@ -10,6 +10,7 @@ import { ingestDocument, MAX_UPLOAD_BYTES, UploadRejected } from '../services/tp
 import { TprmLlm } from '../services/tprm/llm.js'
 import { isLowText } from '../services/tprm/parsers.js'
 import { generateRemediation, isOverdue, toJiraCsv } from '../services/tprm/remediation.js'
+import { buildResponse, fillQuestionnaire, toMarkdown } from '../services/tprm/response.js'
 import { reviewAnswer, ReviewRejected } from '../services/tprm/review.js'
 import { executeRun, prepareRun, RunEvent, RunRejected } from '../services/tprm/run.js'
 import { SecurityReviewStore } from '../services/tprm/store.js'
@@ -222,6 +223,58 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm
     })
     const updated = await store.getRemediation(item.id, req.supplierId!)
     res.json({ item: { ...updated, overdue: isOverdue(updated!, todayIso()) } })
+  }))
+
+  // The response the buyer receives: built from the latest completed run (or ?run=), with only
+  // releasable answers. Withheld ones are listed for the vendor, never exported.
+  const responseFor = async (req: ScopedRequest) => {
+    const runs = await store.listRuns(req.params.requestId)
+    const run = typeof req.query.run === 'string'
+      ? runs.find((r) => r.id === req.query.run)
+      : runs.find((r) => r.status === 'completed')
+    if (!run) return null
+    const answers = await store.listAnswers(run.id)
+    return { run, answers, ...buildResponse(answers) }
+  }
+
+  router.get('/requests/:requestId/response', requireOwnership, wrap(async (req, res) => {
+    const r = await responseFor(req)
+    if (!r) {
+      res.status(404).json({ error: 'No completed questionnaire run yet' })
+      return
+    }
+    res.json({ run_id: r.run.id, total: r.answers.length, included: r.included, withheld: r.withheld })
+  }))
+
+  // GET /requests/:requestId/response/export?format=xlsx|md — xlsx is the buyer's own questionnaire, filled in
+  router.get('/requests/:requestId/response/export', requireOwnership, wrap(async (req, res) => {
+    const r = await responseFor(req)
+    if (!r) {
+      res.status(404).json({ error: 'No completed questionnaire run yet' })
+      return
+    }
+    const format = req.query.format === 'md' ? 'md' : 'xlsx'
+    const questionnaire = await store.getDocument(r.run.questionnaire_doc_id, req.supplierId!)
+    const base = (questionnaire?.filename ?? 'questionnaire').replace(/\.xlsx$/i, '')
+    if (format === 'xlsx') {
+      if (!questionnaire?.storage_path) {
+        res.status(409).json({ error: 'The questionnaire file is unavailable; export as Markdown instead' })
+        return
+      }
+      const { data } = await fillQuestionnaire(await store.downloadOriginal(questionnaire.storage_path), r.included)
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      res.setHeader('Content-Disposition', `attachment; filename="${base}_response.xlsx"`)
+      res.send(Buffer.from(data))
+    } else {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
+      res.setHeader('Content-Disposition', `attachment; filename="${base}_response.md"`)
+      res.send(toMarkdown('Security questionnaire response', r.included, r.answers.length))
+    }
+    await store.logEvent({
+      supplier_id: req.supplierId!, request_id: req.params.requestId, actor: 'user', actor_id: req.userId ?? null,
+      event_type: 'response_exported', entity_type: 'questionnaire_run', entity_id: r.run.id,
+      payload: { format, included: r.included.length, withheld: r.withheld.length },
+    })
   }))
 
   router.get('/requests/:requestId/activity', requireOwnership, wrap(async (req, res) => {

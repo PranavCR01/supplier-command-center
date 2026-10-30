@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
@@ -8,11 +8,13 @@ import AnswersTab from '@/components/security-review/AnswersTab'
 import DocumentsTab from '@/components/security-review/DocumentsTab'
 import EvidenceDrawer, { EvidenceTarget } from '@/components/security-review/EvidenceDrawer'
 import RemediationTab from '@/components/security-review/RemediationTab'
+import ResponseTab from '@/components/security-review/ResponseTab'
 
 const TABS = [
   { key: 'documents', label: 'Documents' },
   { key: 'answers', label: 'Answers' },
   { key: 'remediation', label: 'Remediation' },
+  { key: 'response', label: 'Response' },
   { key: 'activity', label: 'Activity' },
 ] as const
 type TabKey = typeof TABS[number]['key']
@@ -23,6 +25,9 @@ export default function SecurityReviewPage() {
   const tab: TabKey = TABS.some((t) => t.key === params.get('tab')) ? params.get('tab') as TabKey : 'documents'
   const [evidence, setEvidence] = useState<EvidenceTarget | null>(null)
   const closeEvidence = useCallback(() => setEvidence(null), [])
+  // On narrow screens the tab row scrolls; keep the selected tab in view
+  const activeTab = useRef<HTMLButtonElement>(null)
+  useEffect(() => { activeTab.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [tab])
 
   const { data: request } = useQuery({
     queryKey: ['inbox-request', requestId],
@@ -51,10 +56,11 @@ export default function SecurityReviewPage() {
         {TABS.map((t) => (
           <button
             key={t.key}
+            ref={tab === t.key ? activeTab : undefined}
             role="tab"
             aria-selected={tab === t.key}
             onClick={() => setParams({ tab: t.key }, { replace: true })}
-            className={`shrink-0 border-b-2 px-3 py-2 text-sm font-semibold transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0369A1] focus-visible:outline-none ${tab === t.key ? 'border-[#0369A1] text-[#0369A1]' : 'border-transparent text-slate-500 hover:text-[#0F172A]'}`}
+            className={`shrink-0 border-b-2 px-2.5 sm:px-3 py-2 text-sm font-semibold transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0369A1] focus-visible:outline-none ${tab === t.key ? 'border-[#0369A1] text-[#0369A1]' : 'border-transparent text-slate-500 hover:text-[#0F172A]'}`}
           >
             {t.label}
           </button>
@@ -64,6 +70,7 @@ export default function SecurityReviewPage() {
       {tab === 'documents' && <DocumentsTab requestId={requestId} onOpenEvidence={setEvidence} />}
       {tab === 'answers' && <AnswersTab requestId={requestId} onOpenEvidence={setEvidence} />}
       {tab === 'remediation' && <RemediationTab requestId={requestId} />}
+      {tab === 'response' && <ResponseTab requestId={requestId} onGoToAnswers={() => setParams({ tab: 'answers' }, { replace: true })} />}
       {tab === 'activity' && <ActivityTab requestId={requestId} />}
 
       <EvidenceDrawer target={evidence} onClose={closeEvidence} />

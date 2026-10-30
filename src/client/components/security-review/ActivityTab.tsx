@@ -15,6 +15,7 @@ function detail(e: ActivityEvent): string | null {
   }
   if (str('filename')) return str('filename')
   if (str('doc_type')) return String(p.doc_type).replace('_', ' ')
+  if (typeof p.included === 'number') return `${String(p.format).toUpperCase()} · ${p.included} answers included, ${p.withheld} withheld`
   if (typeof p.ready === 'number') return `${p.ready} ready · ${p.needs_evidence} need evidence · ${p.conflict} conflict`
   if (str('error')) return str('error')
   return null

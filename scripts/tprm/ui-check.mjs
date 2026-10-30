@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url'
 
 const require = createRequire(import.meta.url)
 const { chromium } = require('playwright')
+const ExcelJS = require('exceljs')
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const OUT = process.env.UI_CHECK_OUT ?? path.join(ROOT, 'ui-check-output')
@@ -136,6 +137,9 @@ async function main() {
   await page.getByRole('button', { name: 'Approve' }).first().click()
   await page.getByText('Approved', { exact: true }).first().waitFor()
   ok('ready answer approved')
+  await page.getByTestId('answer-card').filter({ hasText: 'GOV-03' }).getByRole('button', { name: 'Reject' }).click()
+  await page.getByTestId('answer-card').filter({ hasText: 'GOV-03' }).getByText('Rejected').waitFor()
+  ok('ready answer rejected')
 
   await page.getByRole('tab', { name: 'Remediation' }).click()
   await page.getByRole('button', { name: 'Generate from findings' }).click()
@@ -154,6 +158,21 @@ async function main() {
   check(/^remediation-\d{4}-\d{2}-\d{2}\.csv$/.test(download.suggestedFilename()), `remediation: dated filename (${download.suggestedFilename()})`)
   await page.screenshot({ path: path.join(OUT, 'desktop-remediation.png'), fullPage: true })
 
+  await page.getByRole('tab', { name: 'Response' }).click()
+  await page.getByTestId('response-summary').waitFor()
+  check((await page.getByTestId('response-summary').textContent()).includes('21 of 22'), 'response: 21 of 22 answers go to the buyer')
+  const withheld = await page.getByTestId('withheld-entry').allTextContents()
+  check(withheld.length === 1 && withheld[0].includes('GOV-03') && withheld[0].includes('Rejected'), 'response: rejected answer withheld')
+  check(await page.getByTestId('response-entry').filter({ hasText: 'IAM-01' }).count() === 1, 'response: resolved conflict included')
+  const [xlsx] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download completed questionnaire' }).click()])
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.readFile(await xlsx.path())
+  const qs = wb.getWorksheet('Questionnaire')
+  const responseOf = (ref) => { let v; qs.eachRow((r) => { if (r.getCell(1).value === ref) v = r.getCell(4).value }); return v }
+  check(xlsx.suggestedFilename() === 'clearfield_vendor_security_questionnaire_response.xlsx', `response: questionnaire downloaded (${xlsx.suggestedFilename()})`)
+  check(responseOf('GOV-01') === 'Yes' && (responseOf('GOV-03') ?? null) === null, 'response: xlsx filled, withheld row left blank')
+  await page.screenshot({ path: path.join(OUT, 'desktop-response.png'), fullPage: true })
+
   await page.getByRole('tab', { name: 'Activity' }).click()
   await page.getByTestId('activity-event').first().waitFor()
   const activity = await page.getByTestId('activity-event').allTextContents()
@@ -161,6 +180,7 @@ async function main() {
   check(activity.some((t) => t.includes('Answer approved')), 'activity shows the approval')
   check(activity.some((t) => t.includes('AI flagged a conflict')), 'activity shows the AI conflict flag')
   check(activity.filter((t) => t.includes('Remediation item updated')).length === 2, 'activity shows the remediation updates')
+  check(activity.some((t) => t.includes('Response exported') && t.includes('21 answers included, 1 withheld')), 'activity shows the export')
 
   await page.goto(`${PAGE}?tab=answers`)
   await page.getByTestId('answer-card').nth(21).waitFor()
@@ -170,7 +190,7 @@ async function main() {
 
   // ── Mobile 375px ─────────────────────────────────────────────────────────
   const m = await newPage(browser, { width: 375, height: 812 })
-  for (const tab of ['documents', 'answers', 'remediation', 'activity']) {
+  for (const tab of ['documents', 'answers', 'remediation', 'response', 'activity']) {
     await m.page.goto(`${PAGE}?tab=${tab}`)
     await m.page.getByRole('heading', { name: 'Security review' }).waitFor()
     await m.page.waitForLoadState('networkidle')
@@ -178,6 +198,8 @@ async function main() {
     // No-scroll alone passed while a fixed sidebar squeezed the page into 60px; check the content width
     const tabs = await m.page.getByRole('tablist', { name: 'Security review sections' }).boundingBox()
     check(tabs && tabs.width >= 330, `375px ${tab}: content uses the screen width (${Math.round(tabs?.width ?? 0)}px)`)
+    const sel = await m.page.getByRole('tab', { selected: true }).first().boundingBox()
+    check(sel && sel.x >= 0 && sel.x + sel.width <= 375, `375px ${tab}: selected tab fully visible`)
     await m.page.screenshot({ path: path.join(OUT, `mobile-${tab}.png`), fullPage: true })
   }
   await m.page.getByRole('button', { name: 'Open menu' }).click()

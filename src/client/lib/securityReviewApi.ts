@@ -5,6 +5,7 @@ import type {
   Locator,
   QuestionnaireAnswerRow,
   QuestionnaireRun,
+  ReadinessReason,
   RemediationItem,
   RemediationStatus,
   SecurityDocType,
@@ -57,6 +58,30 @@ export type ReviewBody =
 
 export type RemediationRow = RemediationItem & { overdue: boolean }
 
+export interface ResponseEntry {
+  ref: string; row: number; domain: string | null; question: string; response: 'Yes' | 'No' | 'Partial' | ''
+  explanation: string; evidence_reference: string; signed_off: 'human' | 'checks'
+}
+export interface WithheldEntry {
+  ref: string; row: number; question: string; why: 'rejected' | 'needs_evidence' | 'conflict'; reasons: ReadinessReason[]
+}
+
+// Saves a file from an authenticated endpoint (a plain link can't send the Authorization header)
+async function download(path: string, fallbackName: string) {
+  const res = await fetch(`${BASE}${path}`, { headers: await authHeaders() })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string }
+    throw new ApiError(body.error ?? `Download failed (${res.status})`, res.status)
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export const securityReviewApi = {
   listDocuments: (requestId: string) =>
     call<{ documents: SecurityDocument[] }>(`/requests/${requestId}/documents`).then((r) => r.documents),
@@ -108,18 +133,14 @@ export const securityReviewApi = {
   updateRemediation: (id: string, patch: { status?: RemediationStatus; external_key?: string | null }) =>
     call<{ item: RemediationRow }>(`/remediation/${id}`, json('PATCH', patch)).then((r) => r.item),
 
-  // Downloads need the auth header, so fetch the file and save it from a blob URL
-  downloadRemediation: async (requestId: string, format: 'csv' | 'json') => {
-    const res = await fetch(`${BASE}/requests/${requestId}/remediation/export?format=${format}`, { headers: await authHeaders() })
-    if (!res.ok) throw new ApiError(`Export failed (${res.status})`, res.status)
-    const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? `remediation.${format}`
-    const url = URL.createObjectURL(await res.blob())
-    const a = document.createElement('a')
-    a.href = url
-    a.download = name
-    a.click()
-    URL.revokeObjectURL(url)
-  },
+  downloadRemediation: (requestId: string, format: 'csv' | 'json') =>
+    download(`/requests/${requestId}/remediation/export?format=${format}`, `remediation.${format}`),
+
+  response: (requestId: string) =>
+    call<{ run_id: string; total: number; included: ResponseEntry[]; withheld: WithheldEntry[] }>(`/requests/${requestId}/response`),
+
+  downloadResponse: (requestId: string, format: 'xlsx' | 'md') =>
+    download(`/requests/${requestId}/response/export?format=${format}`, `response.${format}`),
 
   activity: (requestId: string) =>
     call<{ events: ActivityEvent[] }>(`/requests/${requestId}/activity`).then((r) => r.events),

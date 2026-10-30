@@ -29,8 +29,8 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 6 | Question run route + SSE progress + persistence | Done in code + in-memory tests; **Supabase check pending (run locally, below)** |
 | 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | Done — `npm run tprm:ui-check` |
 | 8 | Remediation items + Jira-style CSV/JSON export | Done |
-| 9 | Final response assembled from Ready answers only | **Next** |
-| 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | |
+| 9 | Final response assembled from Ready answers only | Done |
+| 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | **Next** |
 
 **Step 6 local check (needs the real DB; not possible in the cloud session):**
 1. Supabase SQL editor: run `docs/migrations/2026-10-31_security_review_additions.sql` → "Success. No rows returned".
@@ -105,6 +105,20 @@ Remaining misses, stated plainly:
   calls this an auditor exception, not a conflict; the model's reading is defensible and resembles VULN-02,
   which gold labels a conflict. Gold not changed; label worth a second look by a human.
 - Every prompt change above was judged on the same 22 questions it will be scored on (circular).
+
+### Step 9: final response
+
+The filter is code (`services/tprm/response.ts` `isReleasable`), not a prompt: an answer is released only
+if a person approved or edited it, or it is Ready and was not rejected. Everything else is withheld and
+listed for the vendor with its reasons; withheld answers never appear in an export.
+Deliverable: the buyer's own questionnaire with Response (Yes / No / Partial), Explanation and Evidence
+Reference (cited, verified passages: "file, p. N") filled by ref; withheld rows stay blank; other sheets
+untouched. Markdown export as an alternative. `GET /requests/:id/response` (latest completed run or
+`?run=`), `GET /requests/:id/response/export?format=xlsx|md`; each export logs `response_exported`.
+Response tab: "N of 22 answers go to the buyer", withheld list with a link back to Answers, preview,
+downloads. The UI check rejects one answer, then confirms 21 of 22 and reads the downloaded workbook.
+Also fixed: at 375px the active tab could sit off-screen in the scrolling tab row (now scrolled into
+view; checked).
 
 ### Step 8: remediation
 
