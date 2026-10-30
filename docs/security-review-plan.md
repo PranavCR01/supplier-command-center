@@ -26,11 +26,22 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 3 | Per question: gather evidence → quote check → conflict check | Done (results below) |
 | 4 | Draft answer → verify support → readiness | Done (results below) |
 | 5 | Eval script (`npm run eval:tprm`) — first checkpoint: numbers for a slide | Done — `docs/eval/2026-10-30.md` |
-| 6 | Question run route + SSE progress + persistence | **Next** |
-| 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | |
+| 6 | Question run route + SSE progress + persistence | Done in code + in-memory tests; **Supabase check pending (run locally, below)** |
+| 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | **Next** |
 | 8 | Remediation items + Jira-style CSV/JSON export | |
 | 9 | Final response assembled from Ready answers only | |
 | 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | |
+
+**Step 6 local check (needs the real DB; not possible in the cloud session):**
+1. Supabase SQL editor: run `docs/migrations/2026-10-31_security_review_additions.sql` → "Success. No rows returned".
+2. Pick a compliance request id: `select id, subject from inbox_requests where request_type = 'compliance' limit 5;`
+   (use one with no security review data yet, or add `--cleanup` first).
+3. `npm run tprm:check-supabase -- <request_id>` (fake model, free; removes its own rows). Expect `✓` lines for
+   migration columns, 6 documents stored and parsed, storage round trip, 5 documents analyzed, run completed
+   with 22 answers (ready 21, needs evidence 0, conflict 1), read back 22 answers, and a final
+   "All Supabase checks passed."
+4. Optional: `npm run tprm:check-supabase -- <request_id> --real` runs Haiku (~2 min, a few cents) and keeps the
+   data for the step 7 UI; `--cleanup` removes it.
 
 **Before step 6 (needs the real DB):** run `docs/migrations/2026-10-31_security_review_additions.sql` on Supabase
 (adds `security_documents.analysis_status/analysis_error`, allows finding kind `access_review_exception`,
@@ -300,6 +311,8 @@ uses the service role, so routes check ownership themselves (see `routes/securit
 | `src/server/services/tprm/readiness.ts` | Readiness rules as a pure function |
 | `src/server/services/tprm/scoreAnswers.ts` | Scores answers: unsafe Ready, conflict recall/FPs, Needs Evidence recall, accuracy |
 | `scripts/tprm/eval.ts` | `npm run eval:tprm`: whole pipeline, all scorers, RUNS for consistency, JSON + Markdown |
+| `src/server/services/tprm/run.ts` | Step 6: `prepareRun` (all rejections) + `executeRun` (analysis, answers, persistence, events) |
+| `scripts/tprm/check-supabase.ts` | Local check of the Supabase store against the real project (`npm run tprm:check-supabase`) |
 | `src/server/services/tprm/pool.ts` | Bounded concurrency with a cache warm-up call first |
 | `scripts/tprm/evidence-samples.ts` | Live steps 2–3 on the samples + score (`npm run tprm:evidence-samples`, `ONLY=IAM-01,…`) |
 | `src/server/services/tprm/testing/fakeLlm.ts` | Fake `TprmLlm` for offline tests (same zod validation path) |
@@ -314,6 +327,14 @@ Commands: `npm test`, `npm run tprm:verify-samples`, `npx tsc --noEmit -p tsconf
 `npx tsc --noEmit`, `npx tsc -p tsconfig.scripts.json` (scripts are outside the other two configs). Live (needs `ANTHROPIC_API_KEY`; costs a few cents): `npm run eval:tprm` (whole pipeline, `RUNS=3` for
 consistency), `npm run tprm:analyze-samples` (step 2 only), `npm run tprm:evidence-samples` (steps 2–3).
 Results go to `eval-results/` (git-ignored).
+
+API (step 6): `POST /requests/:id/runs` streams SSE `data: {type}` events — `run_started` {run_id, questions},
+`analysis` {filename, status} for documents not yet analyzed, `answer` {answer row, done, total}, then `done` {run}
+or `error`. Rejections (no questionnaire, no evidence, a run already in progress, unreadable questionnaire)
+come back as 409 JSON before streaming. The run keeps going and saving if the client disconnects; a run
+still "running" after 15 min no longer blocks a new one. `GET /requests/:id/runs` (newest first),
+`GET /runs/:id` → {run, answers}. Events: `questionnaire_run_started`, `answer_conflict_detected`,
+`questionnaire_run_completed` / `questionnaire_run_failed`.
 
 API (step 2): `POST /requests/:id/analyze`, `POST /documents/:id/analyze`, `PATCH /documents/:id`
 `{doc_type}` (vendor correction, kept on re-analysis), `GET /requests/:id/findings`. Analysis routes

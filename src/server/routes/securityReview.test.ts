@@ -7,9 +7,10 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import type { AuthRequest } from '../middleware/auth.js'
 import { PROMPTS } from '../services/tprm/analyze.js'
+import { ANSWER_PROMPTS } from '../services/tprm/answer.js'
 import { TprmLlm } from '../services/tprm/llm.js'
 import { MemorySecurityReviewStore } from '../services/tprm/memoryStore.js'
-import { FakeTprmLlm } from '../services/tprm/testing/fakeLlm.js'
+import { fakePipelineLlm, FakeTprmLlm } from '../services/tprm/testing/fakeLlm.js'
 import { createSecurityReviewRouter } from './securityReview.js'
 
 const SAMPLES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../test_data/tprm/documents')
@@ -239,5 +240,114 @@ describe('document analysis', () => {
     assert.equal(res.status, 200)
     assert.equal(store.documents[0].doc_type_source, 'user')
     assert.equal(store.events.at(-1)?.event_type, 'document_type_set')
+  })
+})
+
+describe('questionnaire runs', () => {
+  const pipelineLlm = fakePipelineLlm
+
+  const loadSamples = () => fetch(`${base}/requests/req-1/documents/samples`, { method: 'POST', headers: { 'x-test-user': 'user-acme' } })
+  const startRun = (signal?: AbortSignal) => fetch(`${base}/requests/req-1/runs`, { method: 'POST', headers: { 'x-test-user': 'user-acme' }, signal })
+  const events = (body: string) => body.split('\n\n').filter((c) => c.startsWith('data: ')).map((c) => JSON.parse(c.slice(6)) as { type: string } & Record<string, unknown>)
+
+  test('streams progress, persists every answer, logs the run and the conflict', async () => {
+    llm = pipelineLlm()
+    await loadSamples()
+    const res = await startRun()
+    assert.equal(res.status, 200)
+    assert.match(res.headers.get('content-type') ?? '', /text\/event-stream/)
+    const evs = events(await res.text())
+
+    assert.equal(evs[0].type, 'run_started')
+    assert.equal(evs[0].questions, 22)
+    assert.equal(evs.filter((e) => e.type === 'analysis').length, 5)
+    assert.equal(evs.filter((e) => e.type === 'answer').length, 22)
+    const done = evs.at(-1) as { type: string; run: { status: string; stats: { ready: number; conflict: number } } }
+    assert.equal(done.type, 'done')
+    assert.equal(done.run.status, 'completed')
+    assert.deepEqual([done.run.stats.ready, done.run.stats.conflict], [21, 1])
+
+    const run = store.runs[0]
+    assert.equal(run.status, 'completed')
+    assert.equal(run.prompt_versions.draft, ANSWER_PROMPTS.draft)
+    assert.match(run.as_of ?? '', /^\d{4}-\d{2}-\d{2}$/)
+    assert.equal(store.answers.length, 22)
+    const iam01 = store.answers.find((a) => a.question_ref === 'IAM-01')!
+    assert.equal(iam01.readiness, 'conflict')
+    assert.equal(iam01.conflict?.b?.filename, 'acme_pentest_summary_2026.pdf')
+    const types = store.events.map((e) => e.event_type)
+    assert.ok(types.includes('questionnaire_run_started'))
+    assert.equal(types.filter((t) => t === 'answer_conflict_detected').length, 1)
+    assert.ok(types.includes('questionnaire_run_completed'))
+
+    const got = await (await get(`/runs/${run.id}`)).json() as { answers: unknown[] }
+    assert.equal(got.answers.length, 22)
+    assert.equal((await get(`/runs/${run.id}`, 'user-other')).status, 404)
+    const runs = await (await get('/requests/req-1/runs')).json() as { runs: { id: string }[] }
+    assert.deepEqual(runs.runs.map((r) => r.id), [run.id])
+  })
+
+  test('a second run reuses document analysis', async () => {
+    llm = pipelineLlm()
+    await loadSamples()
+    await (await startRun()).text()
+    const fake = pipelineLlm()
+    llm = fake
+    await (await startRun()).text()
+    assert.equal(fake.calls.filter((c) => c.task === PROMPTS.extract).length, 0)
+    assert.equal(store.runs.length, 2)
+  })
+
+  test('rejections come back as JSON before streaming starts', async () => {
+    llm = pipelineLlm()
+    assert.equal((await startRun()).status, 409, 'nothing uploaded')
+    await upload(sample('acme_soc2_type2_2026.pdf'), 'soc2.pdf')
+    const noQuestionnaire = await startRun()
+    assert.equal(noQuestionnaire.status, 409)
+    assert.match(((await noQuestionnaire.json()) as { error: string }).error, /questionnaire/)
+
+    await upload(sample('clearfield_vendor_security_questionnaire.xlsx'), 'q.xlsx')
+    store.runs.push({ id: 'r0', supplier_id: 'sup-acme', request_id: 'req-1', questionnaire_doc_id: 'q', status: 'running',
+      model: 'm', prompt_versions: {}, stats: null, error: null, as_of: null, created_at: new Date().toISOString(), completed_at: null })
+    assert.match(((await (await startRun()).json()) as { error: string }).error, /already in progress/)
+
+    store.runs[0].created_at = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    assert.equal((await startRun()).status, 200, 'a stale running run does not block')
+    assert.equal((await fetch(`${base}/requests/req-other/runs`, { method: 'POST', headers: { 'x-test-user': 'user-acme' } })).status, 404)
+  })
+
+  test('503 without a model', async () => {
+    await loadSamples()
+    assert.equal((await startRun()).status, 503)
+  })
+
+  test('the run finishes and saves answers after the client disconnects', async () => {
+    llm = pipelineLlm({}, 15)   // slow enough that the disconnect lands mid-run
+    await loadSamples()
+    const controller = new AbortController()
+    const res = await startRun(controller.signal)
+    const reader = res.body!.getReader()
+    await reader.read()
+    controller.abort()
+    assert.equal(store.runs[0].status, 'running', 'disconnected before the run finished')
+    for (let i = 0; i < 100 && store.runs[0]?.status === 'running'; i++) await new Promise((r) => setTimeout(r, 50))
+    assert.equal(store.runs[0].status, 'completed')
+    assert.equal(store.answers.length, 22)
+  })
+
+  test('model failures hold answers back; a storage failure fails the run cleanly', async () => {
+    llm = pipelineLlm({ [ANSWER_PROMPTS.draft]: { apiError: 'overloaded' } })
+    await loadSamples()
+    await (await startRun()).text()
+    assert.equal(store.runs[0].status, 'completed')
+    assert.ok(store.answers.every((a) => a.readiness !== 'ready' && a.reasons.includes('SCHEMA_INVALID')))
+
+    llm = pipelineLlm()
+    store.saveAnswer = async () => { throw new Error('db down') }
+    const evs = events(await (await startRun()).text())
+    assert.equal(evs.at(-1)?.type, 'error')
+    assert.equal(store.runs.at(-1)?.status, 'failed')
+    assert.equal(store.runs.at(-1)?.error, 'db down')
+    assert.equal(store.events.at(-1)?.event_type, 'questionnaire_run_failed')
   })
 })

@@ -204,6 +204,48 @@ export interface DraftedAnswer {
   errors: string[]
 }
 
+export type RunStatus = 'running' | 'completed' | 'failed'
+
+export interface RunStats {
+  questions: number
+  ready: number
+  needs_evidence: number
+  conflict: number
+  duration_ms: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_input_tokens: number
+  cache_creation_input_tokens: number
+}
+
+export interface QuestionnaireRun {
+  id: string
+  supplier_id: string
+  request_id: string
+  questionnaire_doc_id: string
+  status: RunStatus
+  model: string
+  prompt_versions: Record<string, string>
+  stats: RunStats | null
+  error: string | null
+  as_of: string | null
+  created_at: string
+  completed_at: string | null
+}
+
+export type ReviewStatus = 'pending' | 'approved' | 'edited' | 'rejected'
+
+export interface QuestionnaireAnswerRow extends DraftedAnswer {
+  id: string
+  supplier_id: string
+  run_id: string
+  review_status: ReviewStatus
+  final_text: string | null
+  reviewed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type FindingKind =
   | 'control' | 'control_exception' | 'carve_out' | 'pentest_finding'
   | 'phishing_metric' | 'policy_statement' | 'access_review_exception'

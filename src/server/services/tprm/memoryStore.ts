@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto'
-import type { ActivityEvent, DocumentFinding, DocumentUnitRow, SecurityDocument } from '../../../types/index.js'
-import { NewActivityEvent, NewFinding, NewSecurityDocument, NewUnit, SecurityReviewStore } from './store.js'
+import type {
+  ActivityEvent, DocumentFinding, DocumentUnitRow, DraftedAnswer, QuestionnaireAnswerRow, QuestionnaireRun, SecurityDocument,
+} from '../../../types/index.js'
+import { NewActivityEvent, NewFinding, NewRun, NewSecurityDocument, NewUnit, SecurityReviewStore } from './store.js'
 
 // In-memory SecurityReviewStore for tests and for running the pipeline/evals without a database.
 export class MemorySecurityReviewStore implements SecurityReviewStore {
@@ -9,6 +11,8 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
   documents: SecurityDocument[] = []
   units: DocumentUnitRow[] = []
   findings: DocumentFinding[] = []
+  runs: QuestionnaireRun[] = []
+  answers: QuestionnaireAnswerRow[] = []
   files = new Map<string, Uint8Array>()
   events: ActivityEvent[] = []
   failUploads = false
@@ -86,6 +90,54 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
 
   async listFindings(documentIds: string[]) {
     return this.findings.filter((f) => documentIds.includes(f.document_id)).map((f) => ({ ...f }))
+  }
+
+  async createRun(run: NewRun) {
+    const row: QuestionnaireRun = {
+      ...run, id: randomUUID(), status: 'running', stats: null, error: null, created_at: new Date().toISOString(), completed_at: null,
+    }
+    this.runs.push(row)
+    return { ...row }
+  }
+
+  async updateRun(id: string, patch: Partial<QuestionnaireRun>) {
+    const row = this.runs.find((r) => r.id === id)
+    if (!row) throw new Error(`run ${id} not found`)
+    Object.assign(row, patch)
+  }
+
+  async listRuns(requestId: string) {
+    return this.runs.filter((r) => r.request_id === requestId).reverse().map((r) => ({ ...r }))
+  }
+
+  async getRun(id: string, supplierId: string) {
+    const row = this.runs.find((r) => r.id === id && r.supplier_id === supplierId)
+    return row ? { ...row } : null
+  }
+
+  async saveAnswer(supplierId: string, runId: string, answer: DraftedAnswer) {
+    const now = new Date().toISOString()
+    const existing = this.answers.find((a) => a.run_id === runId && a.question_ref === answer.question_ref)
+    if (existing) {
+      Object.assign(existing, answer, { updated_at: now })
+      return { ...existing }
+    }
+    const row: QuestionnaireAnswerRow = {
+      ...answer, id: randomUUID(), supplier_id: supplierId, run_id: runId, review_status: 'pending',
+      final_text: null, reviewed_at: null, created_at: now, updated_at: now,
+    }
+    this.answers.push(row)
+    return { ...row }
+  }
+
+  async listAnswers(runId: string) {
+    return this.answers.filter((a) => a.run_id === runId).map((a) => ({ ...a }))
+  }
+
+  async downloadOriginal(path: string) {
+    const data = this.files.get(path)
+    if (!data) throw new Error(`file ${path} not found`)
+    return data
   }
 
   async uploadOriginal(path: string, data: Uint8Array) {

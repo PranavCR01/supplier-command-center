@@ -4,9 +4,11 @@ import path from 'path'
 import type { SecurityDocRole, SecurityDocType } from '../../types/index.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { analyzeDocument, analyzeRequestDocuments } from '../services/tprm/analyze.js'
+import { todayIso } from '../services/tprm/answer.js'
 import { ingestDocument, MAX_UPLOAD_BYTES, UploadRejected } from '../services/tprm/ingest.js'
 import { TprmLlm } from '../services/tprm/llm.js'
 import { isLowText } from '../services/tprm/parsers.js'
+import { executeRun, prepareRun, RunEvent, RunRejected } from '../services/tprm/run.js'
 import { SecurityReviewStore } from '../services/tprm/store.js'
 
 export interface SecurityReviewDeps {
@@ -117,6 +119,40 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm
     res.json({ findings: await store.listFindings(docs.map((d) => d.id)) })
   }))
 
+  // POST /requests/:requestId/runs — answer the questionnaire; progress streams as SSE
+  // (data: {type: run_started | analysis | answer | done | error}). The run keeps going and
+  // saving answers if the client disconnects.
+  router.post('/requests/:requestId/runs', requireOwnership, requireLlm, wrap(async (req, res) => {
+    const ctx = { store, llm: llm!, supplierId: req.supplierId!, requestId: req.params.requestId, userId: req.userId ?? null }
+    const prepared = await prepareRun(ctx)
+
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+    res.flushHeaders()
+    let open = true
+    res.on('close', () => { open = false })
+    const send = (e: RunEvent) => {
+      if (open) res.write(`data: ${JSON.stringify(e)}\n\n`)
+    }
+    await executeRun(ctx, prepared, { asOf: todayIso(), onEvent: send })
+    res.end()
+  }))
+
+  router.get('/requests/:requestId/runs', requireOwnership, wrap(async (req, res) => {
+    res.json({ runs: await store.listRuns(req.params.requestId) })
+  }))
+
+  // GET /runs/:runId — a run and its answers
+  router.get('/runs/:runId', wrap(async (req, res) => {
+    const run = await store.getRun(req.params.runId, req.supplierId!)
+    if (!run) {
+      res.status(404).json({ error: 'Not found' })
+      return
+    }
+    res.json({ run, answers: await store.listAnswers(run.id) })
+  }))
+
   router.get('/requests/:requestId/activity', requireOwnership, wrap(async (req, res) => {
     res.json({ events: await store.listEvents(req.params.requestId) })
   }))
@@ -183,7 +219,7 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm
   }))
 
   router.use((err: Error & { status?: number; type?: string }, _req: ScopedRequest, res: Response, _next: NextFunction) => {
-    if (err instanceof UploadRejected) {
+    if (err instanceof UploadRejected || err instanceof RunRejected) {
       res.status(err.status).json({ error: err.message })
       return
     }

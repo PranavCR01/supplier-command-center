@@ -4,6 +4,9 @@ import type {
   ActivityEvent,
   DocumentFinding,
   DocumentUnitRow,
+  DraftedAnswer,
+  QuestionnaireAnswerRow,
+  QuestionnaireRun,
   Locator,
   SecurityDocRole,
   SecurityDocType,
@@ -30,6 +33,8 @@ export interface NewUnit {
 }
 
 export type NewFinding = Omit<DocumentFinding, 'id' | 'supplier_id' | 'document_id' | 'created_at'>
+
+export type NewRun = Pick<QuestionnaireRun, 'supplier_id' | 'request_id' | 'questionnaire_doc_id' | 'model' | 'prompt_versions' | 'as_of'>
 
 export interface NewActivityEvent {
   supplier_id: string
@@ -62,7 +67,16 @@ export interface SecurityReviewStore {
   replaceFindings(supplierId: string, documentId: string, findings: NewFinding[]): Promise<void>
   listFindings(documentIds: string[]): Promise<DocumentFinding[]>
 
+  createRun(run: NewRun): Promise<QuestionnaireRun>
+  updateRun(id: string, patch: Partial<QuestionnaireRun>): Promise<void>
+  listRuns(requestId: string): Promise<QuestionnaireRun[]>          // newest first
+  getRun(id: string, supplierId: string): Promise<QuestionnaireRun | null>
+  // One row per (run, question): saving again replaces the draft fields
+  saveAnswer(supplierId: string, runId: string, answer: DraftedAnswer): Promise<QuestionnaireAnswerRow>
+  listAnswers(runId: string): Promise<QuestionnaireAnswerRow[]>
+
   uploadOriginal(path: string, data: Uint8Array, mimeType: string): Promise<void>
+  downloadOriginal(path: string): Promise<Uint8Array>
   signedUrl(path: string, expiresInSeconds: number): Promise<string>
 
   logEvent(event: NewActivityEvent): Promise<void>
@@ -148,6 +162,52 @@ export class SupabaseSecurityReviewStore implements SecurityReviewStore {
       .from('document_findings').select('*').in('document_id', documentIds).order('created_at')
     if (error) throw new Error(`list document_findings failed: ${error.message}`)
     return (data ?? []) as DocumentFinding[]
+  }
+
+  async createRun(run: NewRun): Promise<QuestionnaireRun> {
+    const { data, error } = await this.db.from('questionnaire_runs').insert(run).select('*').single()
+    if (error || !data) throw new Error(`insert questionnaire_runs failed: ${error?.message}`)
+    return data as QuestionnaireRun
+  }
+
+  async updateRun(id: string, patch: Partial<QuestionnaireRun>): Promise<void> {
+    const { error } = await this.db.from('questionnaire_runs').update(patch).eq('id', id)
+    if (error) throw new Error(`update questionnaire_runs failed: ${error.message}`)
+  }
+
+  async listRuns(requestId: string): Promise<QuestionnaireRun[]> {
+    const { data, error } = await this.db
+      .from('questionnaire_runs').select('*').eq('request_id', requestId).order('created_at', { ascending: false })
+    if (error) throw new Error(`list questionnaire_runs failed: ${error.message}`)
+    return (data ?? []) as QuestionnaireRun[]
+  }
+
+  async getRun(id: string, supplierId: string): Promise<QuestionnaireRun | null> {
+    const { data } = await this.db
+      .from('questionnaire_runs').select('*').eq('id', id).eq('supplier_id', supplierId).maybeSingle()
+    return (data as QuestionnaireRun | null) ?? null
+  }
+
+  async saveAnswer(supplierId: string, runId: string, answer: DraftedAnswer): Promise<QuestionnaireAnswerRow> {
+    const { data, error } = await this.db
+      .from('questionnaire_answers')
+      .upsert({ ...answer, supplier_id: supplierId, run_id: runId }, { onConflict: 'run_id,question_ref' })
+      .select('*').single()
+    if (error || !data) throw new Error(`upsert questionnaire_answers failed: ${error?.message}`)
+    return data as QuestionnaireAnswerRow
+  }
+
+  async listAnswers(runId: string): Promise<QuestionnaireAnswerRow[]> {
+    const { data, error } = await this.db
+      .from('questionnaire_answers').select('*').eq('run_id', runId).order('created_at')
+    if (error) throw new Error(`list questionnaire_answers failed: ${error.message}`)
+    return (data ?? []) as QuestionnaireAnswerRow[]
+  }
+
+  async downloadOriginal(path: string): Promise<Uint8Array> {
+    const { data, error } = await this.db.storage.from(SECURITY_DOCS_BUCKET).download(path)
+    if (error || !data) throw new Error(`storage download failed: ${error?.message}`)
+    return new Uint8Array(await data.arrayBuffer())
   }
 
   async uploadOriginal(path: string, data: Uint8Array, mimeType: string): Promise<void> {

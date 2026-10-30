@@ -1,3 +1,6 @@
+import { PROMPTS } from '../analyze.js'
+import { ANSWER_PROMPTS } from '../answer.js'
+import { EVIDENCE_PROMPTS } from '../evidence.js'
 import { LlmUsage, parseStructured, StructuredRequest, StructuredResult, TprmLlm } from '../llm.js'
 
 // What a fake returns for one call: a value to serialize as the model's JSON output,
@@ -12,10 +15,15 @@ export class FakeTprmLlm implements TprmLlm {
   readonly model = 'fake-model'
   calls: { task: string; input: string | undefined; context: string }[] = []
 
-  constructor(private readonly replies: Record<string, FakeReply | ((input: string | undefined, context: string) => FakeReply)>) {}
+  // delayMs makes each call take real time, for tests that need a run to be in flight
+  constructor(
+    private readonly replies: Record<string, FakeReply | ((input: string | undefined, context: string) => FakeReply)>,
+    private readonly delayMs = 0,
+  ) {}
 
   async structured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
     this.calls.push({ task: req.task.version, input: req.input, context: req.context })
+    if (this.delayMs) await new Promise((r) => setTimeout(r, this.delayMs))
     const entry = this.replies[req.task.version]
     if (!entry) throw new Error(`FakeTprmLlm: no reply for ${req.task.version}`)
     const reply = typeof entry === 'function' ? entry(req.input, req.context) : entry
@@ -25,4 +33,24 @@ export class FakeTprmLlm implements TprmLlm {
       ? { ok: true, data: parsed.data, usage: USAGE }
       : { ok: false, error: 'schema_invalid', message: parsed.message, usage: USAGE }
   }
+}
+
+// A fake for the whole pipeline on the sample documents (evidence ids D1-D5 by filename):
+// every question gets the SOC 2 VPN passage and a supported "yes"; IAM-01 gets a policy vs
+// pen test conflict. Exercises every write path without calling the API.
+export function fakePipelineLlm(overrides: Record<string, FakeReply> = {}, delayMs = 0): FakeTprmLlm {
+  const passage = (document: string, page: number, quote: string, stance: string) =>
+    ({ document, location: { page, sheet: null, row: null }, quote, stance, note: '' })
+  const VPN = passage('D5', 11, 'Multi-factor authentication is required for remote access to the production network via VPN', 'supports')
+  const POLICY = passage('D2', 3, 'Multi-factor authentication is enforced for all interactive access to Acme systems', 'supports')
+  const PENTEST = passage('D3', 3, 'accepts a username and password without requiring multi-factor authentication', 'contradicts')
+  return new FakeTprmLlm({
+    [PROMPTS.extract]: { json: { doc_type: 'other', doc_type_reason: 'fake', findings: [] } },
+    [PROMPTS.summarize]: { json: { headline: 'fake', top_findings: [], key_exceptions: [], takeaways: [] } },
+    [EVIDENCE_PROMPTS.gather]: (input) => ({ json: { passages: input?.includes('ref="IAM-01"') ? [POLICY, PENTEST] : [VPN] } }),
+    [EVIDENCE_PROMPTS.conflict]: { json: { explanation: 'clash', conflict: true, a: 1, b: 2 } },
+    [ANSWER_PROMPTS.draft]: { json: { response_text: 'Acme requires MFA for VPN access.', answer: 'yes', cited: [1], confidence: 0.9 } },
+    [ANSWER_PROMPTS.verify]: { json: { reason: 'ok', verdict: 'supported' } },
+    ...overrides,
+  }, delayMs)
 }
