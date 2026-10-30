@@ -167,6 +167,18 @@ describe('reading evidence', () => {
     assert.equal((await get(`/documents/${doc.id}/units/99`)).status, 404)
   })
 
+  test('unit behind a citation locator, for PDFs and spreadsheet rows', async () => {
+    await upload(sample('acme_soc2_type2_2026.pdf'), 'soc2.pdf')
+    await upload(sample('acme_access_review_q2_2026.xlsx'), 'ar.xlsx')
+    const [pdf, xlsx] = store.documents
+    const page = await (await get(`/documents/${pdf.id}/unit?page=11`)).json() as { unit: { text: string } }
+    assert.match(page.unit.text, /41 days after review/)
+    const rows = await (await get(`/documents/${xlsx.id}/unit?sheet=Q2-2026%20Review&row=27`)).json() as { unit: { locator: { row_start: number } } }
+    assert.equal(rows.unit.locator.row_start, 27)
+    assert.equal((await get(`/documents/${pdf.id}/unit?page=40`)).status, 404)
+    assert.equal((await get(`/documents/${pdf.id}/unit?page=11`, 'user-other')).status, 404)
+  })
+
   test('signed link to the original', async () => {
     await upload(sample('acme_soc2_type2_2026.pdf'), 'soc2.pdf')
     const body = await (await get(`/documents/${store.documents[0].id}/original`)).json() as { url: string }
@@ -280,8 +292,9 @@ describe('questionnaire runs', () => {
     assert.equal(types.filter((t) => t === 'answer_conflict_detected').length, 1)
     assert.ok(types.includes('questionnaire_run_completed'))
 
-    const got = await (await get(`/runs/${run.id}`)).json() as { answers: unknown[] }
+    const got = await (await get(`/runs/${run.id}`)).json() as { answers: { question_ref: string }[] }
     assert.equal(got.answers.length, 22)
+    assert.deepEqual(got.answers.slice(0, 4).map((a) => a.question_ref), ['GOV-01', 'GOV-02', 'GOV-03', 'IAM-01'], 'questionnaire order')
     assert.equal((await get(`/runs/${run.id}`, 'user-other')).status, 404)
     const runs = await (await get('/requests/req-1/runs')).json() as { runs: { id: string }[] }
     assert.deepEqual(runs.runs.map((r) => r.id), [run.id])
@@ -349,5 +362,63 @@ describe('questionnaire runs', () => {
     assert.equal(store.runs.at(-1)?.status, 'failed')
     assert.equal(store.runs.at(-1)?.error, 'db down')
     assert.equal(store.events.at(-1)?.event_type, 'questionnaire_run_failed')
+  })
+})
+
+describe('human review', () => {
+  const patchAnswer = (id: string, body: unknown, user = 'user-acme') => fetch(`${base}/answers/${id}`, {
+    method: 'PATCH', headers: { 'x-test-user': user, 'content-type': 'application/json' }, body: JSON.stringify(body),
+  })
+
+  async function completedRun() {
+    llm = fakePipelineLlm()
+    await fetch(`${base}/requests/req-1/documents/samples`, { method: 'POST', headers: { 'x-test-user': 'user-acme' } })
+    await (await fetch(`${base}/requests/req-1/runs`, { method: 'POST', headers: { 'x-test-user': 'user-acme' } })).text()
+    return {
+      ready: store.answers.find((a) => a.readiness === 'ready')!,
+      conflict: store.answers.find((a) => a.readiness === 'conflict')!,
+    }
+  }
+
+  test('approve, edit and reject are saved and logged with the AI readiness', async () => {
+    const { ready } = await completedRun()
+    const res = await patchAnswer(ready.id, { action: 'approve' })
+    assert.equal(res.status, 200)
+    assert.equal(store.answers.find((a) => a.id === ready.id)!.review_status, 'approved')
+    const ev = store.events.at(-1)!
+    assert.equal(ev.event_type, 'answer_approved')
+    assert.equal(ev.actor, 'user')
+    assert.equal(ev.payload.ai_readiness, 'ready')
+
+    await patchAnswer(ready.id, { action: 'edit', final_text: '  Yes. MFA is required for VPN.  ' })
+    const edited = store.answers.find((a) => a.id === ready.id)!
+    assert.deepEqual([edited.review_status, edited.final_text], ['edited', 'Yes. MFA is required for VPN.'])
+
+    await patchAnswer(ready.id, { action: 'reject', note: 'wrong scope' })
+    assert.equal(store.answers.find((a) => a.id === ready.id)!.review_status, 'rejected')
+    assert.equal(store.events.at(-1)!.payload.note, 'wrong scope')
+  })
+
+  test('a conflict must be resolved, not approved', async () => {
+    const { conflict, ready } = await completedRun()
+    assert.equal((await patchAnswer(conflict.id, { action: 'approve' })).status, 409)
+    assert.equal((await patchAnswer(conflict.id, { action: 'edit', final_text: 'x' })).status, 409)
+    assert.equal((await patchAnswer(ready.id, { action: 'resolve', choice: 'a', final_text: 'x' })).status, 409)
+
+    const res = await patchAnswer(conflict.id, { action: 'resolve', choice: 'b', final_text: 'Partial: the admin portal lacks MFA until Q4.', note: 'pen test is current' })
+    assert.equal(res.status, 200)
+    const row = store.answers.find((a) => a.id === conflict.id)!
+    assert.equal(row.review_status, 'edited')
+    assert.equal(row.readiness, 'conflict', 'the AI readiness is kept for the record')
+    assert.deepEqual([store.events.at(-1)!.event_type, store.events.at(-1)!.payload.choice], ['conflict_resolved', 'b'])
+  })
+
+  test('bad input and other suppliers are refused', async () => {
+    const { ready } = await completedRun()
+    assert.equal((await patchAnswer(ready.id, { action: 'edit', final_text: '   ' })).status, 400)
+    assert.equal((await patchAnswer(ready.id, { action: 'publish' })).status, 400)
+    assert.equal((await patchAnswer(ready.id, { action: 'approve' }, 'user-other')).status, 404)
+    assert.equal((await patchAnswer('nope', { action: 'approve' })).status, 404)
+    assert.equal(store.answers.find((a) => a.id === ready.id)!.review_status, 'pending')
   })
 })

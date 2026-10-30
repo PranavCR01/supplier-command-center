@@ -74,6 +74,8 @@ export interface SecurityReviewStore {
   // One row per (run, question): saving again replaces the draft fields
   saveAnswer(supplierId: string, runId: string, answer: DraftedAnswer): Promise<QuestionnaireAnswerRow>
   listAnswers(runId: string): Promise<QuestionnaireAnswerRow[]>
+  getAnswer(id: string, supplierId: string): Promise<QuestionnaireAnswerRow | null>
+  updateAnswer(id: string, patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'>): Promise<void>
 
   uploadOriginal(path: string, data: Uint8Array, mimeType: string): Promise<void>
   downloadOriginal(path: string): Promise<Uint8Array>
@@ -199,9 +201,20 @@ export class SupabaseSecurityReviewStore implements SecurityReviewStore {
 
   async listAnswers(runId: string): Promise<QuestionnaireAnswerRow[]> {
     const { data, error } = await this.db
-      .from('questionnaire_answers').select('*').eq('run_id', runId).order('created_at')
+      .from('questionnaire_answers').select('*').eq('run_id', runId).order('question_row')
     if (error) throw new Error(`list questionnaire_answers failed: ${error.message}`)
     return (data ?? []) as QuestionnaireAnswerRow[]
+  }
+
+  async getAnswer(id: string, supplierId: string): Promise<QuestionnaireAnswerRow | null> {
+    const { data } = await this.db
+      .from('questionnaire_answers').select('*').eq('id', id).eq('supplier_id', supplierId).maybeSingle()
+    return (data as QuestionnaireAnswerRow | null) ?? null
+  }
+
+  async updateAnswer(id: string, patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'>): Promise<void> {
+    const { error } = await this.db.from('questionnaire_answers').update(patch).eq('id', id)
+    if (error) throw new Error(`update questionnaire_answers failed: ${error.message}`)
   }
 
   async downloadOriginal(path: string): Promise<Uint8Array> {

@@ -27,8 +27,8 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 4 | Draft answer → verify support → readiness | Done (results below) |
 | 5 | Eval script (`npm run eval:tprm`) — first checkpoint: numbers for a slide | Done — `docs/eval/2026-10-30.md` |
 | 6 | Question run route + SSE progress + persistence | Done in code + in-memory tests; **Supabase check pending (run locally, below)** |
-| 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | **Next** |
-| 8 | Remediation items + Jira-style CSV/JSON export | |
+| 7 | Security review page (Documents, Answers, conflict view, evidence drawer) | Done — `npm run tprm:ui-check` |
+| 8 | Remediation items + Jira-style CSV/JSON export | **Next** |
 | 9 | Final response assembled from Ready answers only | |
 | 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | |
 
@@ -45,7 +45,7 @@ opinion second, the model's own confidence last, and a human for anything unreso
 
 **Before step 6 (needs the real DB):** run `docs/migrations/2026-10-31_security_review_additions.sql` on Supabase
 (adds `security_documents.analysis_status/analysis_error`, allows finding kind `access_review_exception`,
-adds `questionnaire_runs.as_of` and `questionnaire_answers.unsupported_numbers/errors`).
+adds `questionnaire_runs.as_of` and `questionnaire_answers.unsupported_numbers/errors/question_row`).
 Not run yet — this environment has no Supabase credentials.
 
 ### Step 2 results (real model, `npm run tprm:analyze-samples`, Haiku 4.5, 2026-10-30)
@@ -105,6 +105,31 @@ Remaining misses, stated plainly:
   calls this an auditor exception, not a conflict; the model's reading is defensible and resembles VULN-02,
   which gold labels a conflict. Gold not changed; label worth a second look by a human.
 - Every prompt change above was judged on the same 22 questions it will be scored on (circular).
+
+### Step 7: security review page
+
+`/inbox/:requestId/security-review` (button "Open security review" on compliance and onboarding requests).
+Tabs Documents · Answers · Activity (Remediation and Response arrive in steps 8–9; tab is kept in `?tab=`).
+- Documents: upload PDF/XLSX, "Use sample documents", "Analyze N documents", doc-type correction,
+  summary cards whose items open the evidence drawer; unverified quotes and unsupported numbers flagged.
+- Answers: "Answer questionnaire" streams progress (n of 22); filter chips with counts; each card shows
+  readiness, answer, reasons in plain words, cited passages, other evidence found, the verifier's objection.
+  Conflicts show both passages (two columns ≥768px, stacked below) and must be resolved (A, B or own
+  wording + note); others can be approved, edited or rejected. A run in progress after a reload is polled.
+- Evidence drawer: unit text with the quote highlighted; "Open original" (signed URL + `#page=N`).
+- Review API: `PATCH /answers/:id` {approve | edit | resolve | reject}; the AI's readiness and reasons stay
+  on the row and go into the event (`answer_approved`, `answer_edited`, `conflict_resolved`, `answer_rejected`).
+
+How it is tested without Supabase: `npm run tprm:ui-check` starts `scripts/tprm/dev-server.ts` (the real
+router on the in-memory store, fake model, dev token) and Vite, stubs only Supabase (session in
+localStorage + two table reads), and drives the flow in Chromium at 1280px and 375px: 34 checks including
+no console errors, no horizontal scroll, content width at 375px, stacked conflict view, full-width drawer.
+`npm run tprm:dev-api -- --real` serves the same API with Haiku for an offline demo.
+
+Found and fixed on the way (pre-existing, app-wide): the sidebar was always 256px wide, so at 375px every
+page was squeezed into ~87px. Below `md` it is now a top bar with a menu button and a slide-in drawer.
+The first UI check missed it (no horizontal scroll ≠ usable); it now also checks the content width.
+`npm run lint` has never run: the repo has no ESLint config (not added; worth fixing before merge).
 
 ### Step 5: eval checkpoint (`npm run eval:tprm`, RUNS=3, 2026-10-30) — numbers for the slide
 
@@ -313,6 +338,10 @@ uses the service role, so routes check ownership themselves (see `routes/securit
 | `scripts/tprm/eval.ts` | `npm run eval:tprm`: whole pipeline, all scorers, RUNS for consistency, JSON + Markdown |
 | `src/server/services/tprm/run.ts` | Step 6: `prepareRun` (all rejections) + `executeRun` (analysis, answers, persistence, events) |
 | `scripts/tprm/check-supabase.ts` | Local check of the Supabase store against the real project (`npm run tprm:check-supabase`) |
+| `src/server/services/tprm/review.ts` | Human review actions (approve / edit / resolve / reject) and their events |
+| `src/client/pages/security-review/SecurityReviewPage.tsx` | The page; tabs in `components/security-review/` |
+| `src/client/lib/securityReviewApi.ts` | Typed client for the API, including the SSE run stream |
+| `scripts/tprm/dev-server.ts`, `scripts/tprm/ui-check.mjs` | Offline API and the Playwright UI check |
 | `src/server/services/tprm/pool.ts` | Bounded concurrency with a cache warm-up call first |
 | `scripts/tprm/evidence-samples.ts` | Live steps 2–3 on the samples + score (`npm run tprm:evidence-samples`, `ONLY=IAM-01,…`) |
 | `src/server/services/tprm/testing/fakeLlm.ts` | Fake `TprmLlm` for offline tests (same zod validation path) |
@@ -326,6 +355,7 @@ uses the service role, so routes check ownership themselves (see `routes/securit
 Commands: `npm test`, `npm run tprm:verify-samples`, `npx tsc --noEmit -p tsconfig.server.json`,
 `npx tsc --noEmit`, `npx tsc -p tsconfig.scripts.json` (scripts are outside the other two configs). Live (needs `ANTHROPIC_API_KEY`; costs a few cents): `npm run eval:tprm` (whole pipeline, `RUNS=3` for
 consistency), `npm run tprm:analyze-samples` (step 2 only), `npm run tprm:evidence-samples` (steps 2–3).
+UI: `npm run tprm:ui-check` (Playwright, no API key or Supabase needed; ~1 min).
 Results go to `eval-results/` (git-ignored).
 
 API (step 6): `POST /requests/:id/runs` streams SSE `data: {type}` events — `run_started` {run_id, questions},

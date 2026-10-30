@@ -22,6 +22,9 @@ interface NavItem {
 
 interface SidebarProps {
   companyName: string
+  className?: string
+  // Called after a nav link is followed (closes the mobile drawer)
+  onNavigate?: () => void
   pendingCount?: number
   criticalCount?: number
 }
@@ -34,7 +37,7 @@ const navItems = (pendingCount: number, criticalCount: number): NavItem[] => [
   { label: 'Settings', to: '/settings', icon: Settings },
 ]
 
-export default function Sidebar({ companyName, pendingCount = 0, criticalCount = 0 }: SidebarProps) {
+export default function Sidebar({ companyName, className, onNavigate, pendingCount = 0, criticalCount = 0 }: SidebarProps) {
   const navigate = useNavigate()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -44,7 +47,7 @@ export default function Sidebar({ companyName, pendingCount = 0, criticalCount =
   }
 
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-[#0F172A] text-white shrink-0">
+    <aside className={cn('flex flex-col w-64 min-h-screen bg-[#0F172A] text-white shrink-0', className)}>
       {/* Brand */}
       <div className="px-6 py-5 border-b border-white/10">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-7 h-7 mb-3" aria-label="Supplier Command Center">
@@ -69,6 +72,7 @@ export default function Sidebar({ companyName, pendingCount = 0, criticalCount =
           <NavLink
             key={to}
             to={to}
+            onClick={onNavigate}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer group',

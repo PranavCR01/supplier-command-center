@@ -4,6 +4,7 @@
 BEGIN;
 
 ALTER TABLE questionnaire_answers
+  DROP COLUMN IF EXISTS question_row,
   DROP COLUMN IF EXISTS errors,
   DROP COLUMN IF EXISTS unsupported_numbers;
 ALTER TABLE questionnaire_runs DROP COLUMN IF EXISTS as_of;

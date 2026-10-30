@@ -188,6 +188,7 @@ export async function draftAnswer(
     usage,
     answer: {
       question_ref: q.ref,
+      question_row: q.row,
       domain: q.domain,
       question_text: q.question,
       // not_addressed only when the evidence really came back empty; a failed call is unknown

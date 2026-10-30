@@ -8,6 +8,7 @@ import { todayIso } from '../services/tprm/answer.js'
 import { ingestDocument, MAX_UPLOAD_BYTES, UploadRejected } from '../services/tprm/ingest.js'
 import { TprmLlm } from '../services/tprm/llm.js'
 import { isLowText } from '../services/tprm/parsers.js'
+import { reviewAnswer, ReviewRejected } from '../services/tprm/review.js'
 import { executeRun, prepareRun, RunEvent, RunRejected } from '../services/tprm/run.js'
 import { SecurityReviewStore } from '../services/tprm/store.js'
 
@@ -153,6 +154,18 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm
     res.json({ run, answers: await store.listAnswers(run.id) })
   }))
 
+  // PATCH /answers/:answerId {action: approve | edit | resolve | reject, ...} — human review
+  router.patch('/answers/:answerId', wrap(async (req, res) => {
+    const answer = await store.getAnswer(req.params.answerId, req.supplierId!)
+    const run = answer ? await store.getRun(answer.run_id, req.supplierId!) : null
+    if (!answer || !run) {
+      res.status(404).json({ error: 'Not found' })
+      return
+    }
+    const updated = await reviewAnswer(store, { supplierId: req.supplierId!, requestId: run.request_id, userId: req.userId ?? null }, answer, req.body)
+    res.json({ answer: updated })
+  }))
+
   router.get('/requests/:requestId/activity', requireOwnership, wrap(async (req, res) => {
     res.json({ events: await store.listEvents(req.params.requestId) })
   }))
@@ -208,6 +221,25 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm
     res.json({ document: await store.getDocument(doc.id, req.supplierId!) })
   }))
 
+  // GET /documents/:documentId/unit?page=3 | ?sheet=Q2&row=27 — the unit behind a citation locator
+  router.get('/documents/:documentId/unit', wrap(async (req, res) => {
+    const doc = await store.getDocument(req.params.documentId, req.supplierId!)
+    const page = Number(req.query.page)
+    const row = Number(req.query.row)
+    const sheet = typeof req.query.sheet === 'string' ? req.query.sheet : null
+    const unit = doc ? (await store.listUnits(doc.id)).find((u) => 'page' in u.locator
+      ? u.locator.page === page
+      : u.locator.sheet === sheet && row >= u.locator.row_start && row <= u.locator.row_end) : undefined
+    if (!doc || !unit) {
+      res.status(404).json({ error: 'Not found' })
+      return
+    }
+    res.json({
+      document: { id: doc.id, filename: doc.filename, unit_count: doc.unit_count, has_original: Boolean(doc.storage_path) },
+      unit: { unit_index: unit.unit_index, locator: unit.locator, text: unit.text, low_text: isLowText(unit.text) },
+    })
+  }))
+
   // GET /documents/:documentId/original — short-lived link to the uploaded file
   router.get('/documents/:documentId/original', wrap(async (req, res) => {
     const doc = await store.getDocument(req.params.documentId, req.supplierId!)
@@ -219,7 +251,7 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm
   }))
 
   router.use((err: Error & { status?: number; type?: string }, _req: ScopedRequest, res: Response, _next: NextFunction) => {
-    if (err instanceof UploadRejected || err instanceof RunRejected) {
+    if (err instanceof UploadRejected || err instanceof RunRejected || err instanceof ReviewRejected) {
       res.status(err.status).json({ error: err.message })
       return
     }

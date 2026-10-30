@@ -22,7 +22,7 @@ function evidence(g: GoldLocation): AnswerEvidence {
 // The answers a perfect pipeline would give, built from gold
 function perfect(): DraftedAnswer[] {
   return gold.questions.map((q) => ({
-    question_ref: q.ref, domain: null, question_text: '', answer: q.expected_answer as AnswerValue,
+    question_ref: q.ref, question_row: 0, domain: null, question_text: '', answer: q.expected_answer as AnswerValue,
     response_text: (q.must_mention ?? []).join(' and '), evidence: q.evidence.map(evidence), conflict: null, verifier: null,
     model_confidence: 0.9, readiness: q.expected_readiness as Readiness,
     reasons: (q.expected_reasons ?? []) as DraftedAnswer['reasons'], unsupported_numbers: [], errors: [],

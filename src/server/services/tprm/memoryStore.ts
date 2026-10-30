@@ -131,7 +131,18 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
   }
 
   async listAnswers(runId: string) {
-    return this.answers.filter((a) => a.run_id === runId).map((a) => ({ ...a }))
+    return this.answers.filter((a) => a.run_id === runId).sort((a, b) => a.question_row - b.question_row).map((a) => ({ ...a }))
+  }
+
+  async getAnswer(id: string, supplierId: string) {
+    const row = this.answers.find((a) => a.id === id && a.supplier_id === supplierId)
+    return row ? { ...row } : null
+  }
+
+  async updateAnswer(id: string, patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'>) {
+    const row = this.answers.find((a) => a.id === id)
+    if (!row) throw new Error(`answer ${id} not found`)
+    Object.assign(row, patch, { updated_at: new Date().toISOString() })
   }
 
   async downloadOriginal(path: string) {

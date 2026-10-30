@@ -1,4 +1,5 @@
-import { X, Paperclip, Mail, Globe, Calendar, User } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { X, Paperclip, Mail, Globe, Calendar, User, ShieldCheck } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import TypeBadge from './TypeBadge'
 import PriorityBadge from './PriorityBadge'
@@ -109,6 +110,16 @@ export default function RequestDetail({ request, onClose }: Props) {
               {format(parseISO(request.received_at), 'MMM d, yyyy · h:mm a')}
             </dd>
           </dl>
+
+          {/* Security review — questionnaire answering with evidence (compliance and onboarding requests) */}
+          {(request.type === 'compliance' || request.type === 'onboarding') && (
+            <Link
+              to={`/inbox/${request.id}/security-review`}
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#0369A1] px-4 py-2.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0369A1] focus-visible:outline-none"
+            >
+              <ShieldCheck className="w-4 h-4" /> Open security review
+            </Link>
+          )}
 
           {/* Tags */}
           {request.tags.length > 0 && (

@@ -69,7 +69,7 @@ if (!real && (await store.listDocuments(requestId)).length > 0) {
 }
 
 // 1. Migration columns (2026-10-31_security_review_additions.sql)
-for (const [table, column] of [['security_documents', 'analysis_status'], ['questionnaire_runs', 'as_of'], ['questionnaire_answers', 'unsupported_numbers']]) {
+for (const [table, column] of [['security_documents', 'analysis_status'], ['questionnaire_runs', 'as_of'], ['questionnaire_answers', 'question_row']]) {
   const { error } = await db.from(table).select(column).limit(1)
   if (error) fail(`${table}.${column} missing — run docs/migrations/2026-10-31_security_review_additions.sql (${error.message})`)
 }

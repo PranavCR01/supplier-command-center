@@ -10,6 +10,7 @@ import CompliancePage from '@/pages/compliance/CompliancePage'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import SeedPage from '@/pages/dev/SeedPage'
+import SecurityReviewPage from '@/pages/security-review/SecurityReviewPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,7 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/inbox" element={<InboxPage />} />
+            <Route path="/inbox/:requestId/security-review" element={<SecurityReviewPage />} />
             <Route path="/compliance" element={<CompliancePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/settings" element={<SettingsPage />} />

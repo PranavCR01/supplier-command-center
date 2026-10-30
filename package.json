@@ -19,7 +19,9 @@
     "tprm:analyze-samples": "tsx scripts/tprm/analyze-samples.ts",
     "tprm:evidence-samples": "tsx scripts/tprm/evidence-samples.ts",
     "eval:tprm": "tsx scripts/tprm/eval.ts",
-    "tprm:check-supabase": "tsx scripts/tprm/check-supabase.ts"
+    "tprm:check-supabase": "tsx scripts/tprm/check-supabase.ts",
+    "tprm:dev-api": "tsx scripts/tprm/dev-server.ts",
+    "tprm:ui-check": "node scripts/tprm/ui-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",

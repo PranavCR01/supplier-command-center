@@ -5,7 +5,7 @@
 --   * security_documents: analysis_status + analysis_error
 --   * document_findings: allow kind 'access_review_exception'
 --   * questionnaire_runs: as_of (date questions were answered on)
---   * questionnaire_answers: unsupported_numbers, errors
+--   * questionnaire_answers: unsupported_numbers, errors, question_row
 -- Idempotent: safe to re-run. Rollback: 2026-10-31_security_review_additions.down.sql
 -- =============================================
 
@@ -30,6 +30,7 @@ ALTER TABLE questionnaire_runs
 
 ALTER TABLE questionnaire_answers
   ADD COLUMN IF NOT EXISTS unsupported_numbers text[] NOT NULL DEFAULT '{}',
-  ADD COLUMN IF NOT EXISTS errors              text[] NOT NULL DEFAULT '{}';
+  ADD COLUMN IF NOT EXISTS errors              text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS question_row        integer;
 
 COMMIT;

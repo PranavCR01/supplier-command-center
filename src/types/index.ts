@@ -190,6 +190,7 @@ export interface AnswerEvidence extends EvidencePassage {
 // One drafted questionnaire answer, shaped like a questionnaire_answers row
 export interface DraftedAnswer {
   question_ref: string
+  question_row: number      // spreadsheet row, so answers list in questionnaire order
   domain: string | null
   question_text: string
   answer: AnswerValue | null
