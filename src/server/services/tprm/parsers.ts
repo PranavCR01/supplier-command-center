@@ -3,9 +3,16 @@ import path from 'path'
 import ExcelJS from 'exceljs'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 
-// pdfjs needs its bundled standard fonts to read PDFs that use the base-14 fonts (Helvetica etc.)
-const STANDARD_FONT_DATA_URL =
-  path.join(path.dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json')), 'standard_fonts') + path.sep
+// pdfjs needs its bundled standard fonts to read PDFs that use the base-14 fonts (Helvetica etc.).
+// pdfjs requires the folder to end in "/" and appends file names to it before fs.readFile, so use
+// forward slashes on every OS (Windows accepts them; a trailing "\\" is rejected by pdfjs).
+export function fontFolderUrl(dir: string): string {
+  return dir.replace(/\\/g, '/').replace(/\/?$/, '/')
+}
+
+export const STANDARD_FONT_DATA_URL = fontFolderUrl(
+  path.join(path.dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json')), 'standard_fonts'),
+)
 
 import type { Locator } from '../../../types/index.js'
 

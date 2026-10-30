@@ -10,7 +10,7 @@
 //
 // The fake model writes placeholder analysis (doc type "other", empty summaries). A real run would
 // reuse it, so fake mode only runs on a request with no security review data and removes its own
-// rows afterwards. Activity events are append-only by design and are never deleted.
+// rows afterwards, also when a check fails. Activity events are append-only and never deleted.
 
 import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
@@ -68,10 +68,19 @@ if (!real && (await store.listDocuments(requestId)).length > 0) {
     'Use another request, --real, or --cleanup first.')
 }
 
+// From here on, fake mode owns every security review row on this request (the check above made
+// sure there were none), so a failure removes them too and the request is ready for a re-run.
+const ownsData = !real && !flags.includes('--keep')
+async function abort(message: string): Promise<never> {
+  console.error(`✗ ${message}`)
+  if (ownsData) console.error(`  cleanup: ${await removeSecurityReviewData()}`)
+  process.exit(1)
+}
+
 // 1. Migration columns (2026-10-31_security_review_additions.sql)
 for (const [table, column] of [['security_documents', 'analysis_status'], ['questionnaire_runs', 'as_of'], ['questionnaire_answers', 'question_row']]) {
   const { error } = await db.from(table).select(column).limit(1)
-  if (error) fail(`${table}.${column} missing — run docs/migrations/2026-10-31_security_review_additions.sql (${error.message})`)
+  if (error) await abort(`${table}.${column} missing — run docs/migrations/2026-10-31_security_review_additions.sql (${error.message})`)
 }
 ok('migration columns present')
 
@@ -79,8 +88,8 @@ ok('migration columns present')
 const ctx = { store, supplierId, requestId, userId: null }
 for (const file of fs.readdirSync(DOCS).filter((f) => /\.(pdf|xlsx)$/.test(f)).sort()) {
   const r = await ingestDocument(ctx, { filename: file, data: new Uint8Array(fs.readFileSync(path.join(DOCS, file))) })
-  if (r.document.parse_status !== 'parsed') fail(`${file}: ${r.document.parse_status} ${r.document.parse_error ?? ''}`)
-  if (!r.document.storage_path) fail(`${file}: original not stored (check the security-docs bucket)`)
+  if (r.document.parse_status !== 'parsed') await abort(`${file}: ${r.document.parse_status} ${r.document.parse_error ?? ''}`)
+  if (!r.document.storage_path) await abort(`${file}: original not stored (check the security-docs bucket)`)
 }
 const docs = await store.listDocuments(requestId)
 ok(`${docs.length} documents stored and parsed`)
@@ -91,7 +100,7 @@ ok(`storage round trip: downloaded ${bytes.byteLength} bytes; signed URL ${link.
 
 // 3. Full run: analysis (findings + summaries), answers, run record, events
 const llm: TprmLlm = real ? new AnthropicTprmLlm() : fakePipelineLlm()
-const prepared = await prepareRun({ ...ctx, llm }).catch((err: Error) => fail(`run rejected: ${err.message}`))
+const prepared = await prepareRun({ ...ctx, llm }).catch((err: Error) => abort(`run rejected: ${err.message}`))
 let answers = 0
 const run = await executeRun({ ...ctx, llm }, prepared, {
   asOf: todayIso(),
@@ -100,7 +109,7 @@ const run = await executeRun({ ...ctx, llm }, prepared, {
     if (e.type === 'answer') answers = e.done
   },
 })
-if (run.status !== 'completed') fail(`run ${run.id} ${run.status}: ${run.error}`)
+if (run.status !== 'completed') await abort(`run ${run.id} ${run.status}: ${run.error}`)
 ok(`run ${run.id} completed with ${model(llm)}: ${answers} answers (ready ${run.stats?.ready}, needs evidence ${run.stats?.needs_evidence}, conflict ${run.stats?.conflict})`)
 
 // 4. Read everything back through the store
@@ -108,7 +117,7 @@ const saved = await store.listAnswers(run.id)
 const findings = await store.listFindings(docs.map((d) => d.id))
 const analyzed = (await store.listDocuments(requestId)).filter((d) => d.analysis_status === 'analyzed').length
 const events = await store.listEvents(requestId)
-if (saved.length !== prepared.questions.length) fail(`expected ${prepared.questions.length} saved answers, found ${saved.length}`)
+if (saved.length !== prepared.questions.length) await abort(`expected ${prepared.questions.length} saved answers, found ${saved.length}`)
 ok(`read back: ${saved.length} answers, ${findings.length} findings, ${analyzed} analyzed documents, ${events.length} activity events`)
 ok(`latest events: ${events.slice(0, 3).map((e) => e.event_type).join(', ')}`)
 if (!real && !flags.includes('--keep')) ok(`fake-model data removed: ${await removeSecurityReviewData()}`)

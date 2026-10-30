@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { matchQuote, normalizeForMatch, numbersNotInSource } from './parsers.js'
+import { fontFolderUrl, matchQuote, normalizeForMatch, numbersNotInSource, STANDARD_FONT_DATA_URL } from './parsers.js'
 
 const PAGE = `CC6.2 User access to production systems
 and the identity provider is reviewed
@@ -54,4 +54,13 @@ test('numbers a claim adds to its source are reported', () => {
   assert.deepEqual(numbersNotInSource('PT-01: open 46 days', 'PT-01 open 45 days'), ['46'])
   assert.deepEqual(numbersNotInSource('Our SOC 2 Type 2 report', 'Type II report issued by the auditor'), [])
   assert.deepEqual(numbersNotInSource('Type 2 scans run 2 times', 'Type II scans'), ['2'], 'a real quantity still counts')
+})
+
+test('pdfjs font folder uses forward slashes and a trailing slash on every OS', () => {
+  assert.ok(STANDARD_FONT_DATA_URL.endsWith('/'))
+  assert.ok(!STANDARD_FONT_DATA_URL.includes('\\'))
+  // What path.join produces on Windows; pdfjs rejected the old trailing backslash
+  assert.equal(fontFolderUrl('D:\\Python files\\app\\node_modules\\pdfjs-dist\\standard_fonts'),
+    'D:/Python files/app/node_modules/pdfjs-dist/standard_fonts/')
+  assert.equal(fontFolderUrl('/srv/app/standard_fonts/'), '/srv/app/standard_fonts/')
 })
