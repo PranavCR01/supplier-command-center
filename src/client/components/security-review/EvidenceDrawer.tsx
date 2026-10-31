@@ -22,6 +22,61 @@ function highlight(text: string, quote: string): { before: string; match: string
   return { before: text.slice(0, m.index), match: m[0], after: text.slice(m.index + m[0].length) }
 }
 
+interface SheetRow {
+  row: number
+  fields: { name: string; value: string }[]
+}
+
+// Spreadsheet units are stored as "[Row 27] User: a | Role: b" lines (see the server parser);
+// split them back into rows of fields so they read as a table, not a wall of text
+function parseRows(text: string): SheetRow[] {
+  const rows: SheetRow[] = []
+  for (const line of text.split('\n')) {
+    const m = /^\[Row (\d+)\] (.*)$/.exec(line)
+    if (!m) continue
+    const fields = m[2].split(' | ').map((pair) => {
+      const i = pair.indexOf(': ')
+      return i < 0 ? { name: '', value: pair } : { name: pair.slice(0, i), value: pair.slice(i + 2) }
+    })
+    rows.push({ row: Number(m[1]), fields })
+  }
+  return rows
+}
+
+function SheetRows({ text, from, to }: { text: string; from: number; to: number }) {
+  const citedRef = useRef<HTMLLIElement>(null)
+  const rows = parseRows(text)
+  useEffect(() => { citedRef.current?.scrollIntoView({ block: 'center' }) }, [text, from])
+  return (
+    <ol className="space-y-2">
+      {rows.map((r) => {
+        const cited = r.row >= from && r.row <= to
+        return (
+          <li
+            key={r.row}
+            ref={cited && r.row === from ? citedRef : undefined}
+            data-testid="sheet-row"
+            data-cited={cited}
+            className={`rounded-lg border p-3 text-sm ${cited ? 'border-amber-300 bg-amber-50' : 'border-slate-100 bg-slate-50 opacity-60'}`}
+          >
+            <p className={`text-xs font-semibold mb-1.5 ${cited ? 'text-amber-900' : 'text-slate-500'}`}>
+              Row {r.row}{cited && ' · cited'}
+            </p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+              {r.fields.map((f, i) => (
+                <div key={i} className="contents">
+                  <dt className="text-slate-500">{f.name}</dt>
+                  <dd className="text-[#0F172A] break-words">{f.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 export default function EvidenceDrawer({ target, onClose }: { target: EvidenceTarget | null; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const [openError, setOpenError] = useState<string | null>(null)
@@ -95,18 +150,24 @@ export default function EvidenceDrawer({ target, onClose }: { target: EvidenceTa
                   This page has almost no extractable text (likely a scan).
                 </p>
               )}
-              {target.verified && !parts && (
-                <p className="text-xs text-slate-500">The quote matched approximately, so it is not highlighted.</p>
+              {'sheet' in target.locator ? (
+                <SheetRows text={data.unit.text} from={target.locator.row_start} to={target.locator.row_end} />
+              ) : (
+                <>
+                  {target.verified && !parts && (
+                    <p className="text-xs text-slate-500">The quote matched approximately, so it is not highlighted.</p>
+                  )}
+                  <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-slate-700 bg-slate-50 border border-slate-100 rounded-lg p-4">
+                    {parts ? (
+                      <>
+                        {parts.before}
+                        <mark data-testid="evidence-highlight" className="bg-amber-100 text-[#0F172A] rounded px-0.5">{parts.match}</mark>
+                        {parts.after}
+                      </>
+                    ) : data.unit.text}
+                  </pre>
+                </>
               )}
-              <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-slate-700 bg-slate-50 border border-slate-100 rounded-lg p-4">
-                {parts ? (
-                  <>
-                    {parts.before}
-                    <mark data-testid="evidence-highlight" className="bg-amber-100 text-[#0F172A] rounded px-0.5">{parts.match}</mark>
-                    {parts.after}
-                  </>
-                ) : data.unit.text}
-              </pre>
             </>
           )}
         </div>

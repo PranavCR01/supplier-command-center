@@ -51,6 +51,17 @@ async function main() {
   const firstRef = await page.getByTestId('answer-card').first().locator('span.font-mono').first().textContent()
   check(firstRef === 'GOV-01', 'answers in questionnaire order')
 
+  // A spreadsheet citation reads as rows of fields, with the cited row marked
+  await page.getByTestId('answer-card').filter({ hasText: 'IAM-04' }).getByRole('button', { name: /access review.*row 27/i }).click()
+  await page.getByRole('dialog', { name: 'Evidence' }).waitFor()
+  const cited = page.locator('[data-testid="sheet-row"][data-cited="true"]')
+  await cited.first().waitFor()
+  check(await cited.count() === 1 && /Row 27/.test(await cited.textContent()) && /ctr\.mbaker/.test(await cited.textContent()),
+    'spreadsheet evidence: cited row 27 shown and marked')
+  check(await page.locator('[data-testid="sheet-row"][data-cited="false"]').count() > 0, 'spreadsheet evidence: neighbouring rows shown for context')
+  await page.screenshot({ path: path.join(OUT, 'desktop-sheet-evidence.png') })
+  await page.keyboard.press('Escape')
+
   await page.getByRole('tab', { name: /Conflict 1/ }).click()
   check(await page.getByTestId('answer-card').count() === 1, 'Conflict filter shows 1 answer')
   const sides = page.getByTestId('conflict-view').locator('.grid > div')
@@ -183,6 +194,12 @@ async function main() {
   check(drawer && drawer.width >= 374, '375px: evidence drawer is full width')
   check(await noHorizontalScroll(m.page), '375px: no horizontal scroll with the drawer open')
   await m.page.screenshot({ path: path.join(OUT, 'mobile-evidence.png') })
+  await m.page.keyboard.press('Escape')
+  await m.page.getByRole('tab', { name: /^All/ }).click()
+  await m.page.getByTestId('answer-card').filter({ hasText: 'IAM-04' }).getByRole('button', { name: /access review.*row 27/i }).click()
+  await m.page.locator('[data-testid="sheet-row"][data-cited="true"]').waitFor()
+  check(await noHorizontalScroll(m.page), '375px: spreadsheet evidence fits the screen')
+  await m.page.screenshot({ path: path.join(OUT, 'mobile-sheet-evidence.png') })
   check(m.errors.length === 0, `no console errors on mobile${m.errors.length ? `: ${m.errors.join(' | ')}` : ''}`)
 
   await browser.close()

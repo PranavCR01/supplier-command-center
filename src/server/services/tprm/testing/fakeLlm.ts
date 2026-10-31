@@ -38,13 +38,15 @@ export class FakeTprmLlm implements TprmLlm {
 // A fake for the whole pipeline on the sample documents (evidence ids D1-D5 by filename):
 // the pen test yields two open findings (PT-01 Critical, PT-03 High) and the policy is typed as a
 // policy, so remediation has something to work with; every question gets the SOC 2 VPN passage
-// and a supported "yes"; IAM-01 gets a policy vs pen test conflict. No API calls.
+// and a supported "yes"; IAM-01 gets a policy vs pen test conflict; IAM-04 cites access review
+// row 27, so spreadsheet citations are exercised too. No API calls.
 export function fakePipelineLlm(overrides: Record<string, FakeReply> = {}, delayMs = 0): FakeTprmLlm {
   const passage = (document: string, page: number, quote: string, stance: string) =>
     ({ document, location: { page, sheet: null, row: null }, quote, stance, note: '' })
   const VPN = passage('D5', 11, 'Multi-factor authentication is required for remote access to the production network via VPN', 'supports')
   const POLICY = passage('D2', 3, 'Multi-factor authentication is enforced for all interactive access to Acme systems', 'supports')
   const PENTEST = passage('D3', 3, 'accepts a username and password without requiring multi-factor authentication', 'contradicts')
+  const ACCESS_ROW = { document: 'D1', location: { page: null, sheet: 'Q2-2026 Review', row: 27 }, quote: 'User: ctr.mbaker', stance: 'limits', note: '' }
   return new FakeTprmLlm({
     [PROMPTS.extract]: (_input, context) => {
       if (context.includes('filename="acme_pentest_summary_2026.pdf"')) {
@@ -61,7 +63,8 @@ export function fakePipelineLlm(overrides: Record<string, FakeReply> = {}, delay
       return { json: { doc_type: isPolicy ? 'security_policy' : 'other', doc_type_reason: 'fake', findings: [] } }
     },
     [PROMPTS.summarize]: { json: { headline: 'fake', top_findings: [], key_exceptions: [], takeaways: [] } },
-    [EVIDENCE_PROMPTS.gather]: (input) => ({ json: { passages: input?.includes('ref="IAM-01"') ? [POLICY, PENTEST] : [VPN] } }),
+    [EVIDENCE_PROMPTS.gather]: (input) => ({ json: { passages:
+      input?.includes('ref="IAM-01"') ? [POLICY, PENTEST] : input?.includes('ref="IAM-04"') ? [ACCESS_ROW] : [VPN] } }),
     [EVIDENCE_PROMPTS.conflict]: { json: { explanation: 'clash', conflict: true, a: 1, b: 2 } },
     [ANSWER_PROMPTS.draft]: { json: { response_text: 'Acme requires MFA for VPN access.', answer: 'yes', cited: [1], confidence: 0.9 } },
     [ANSWER_PROMPTS.verify]: { json: { reason: 'ok', verdict: 'supported' } },
