@@ -51,6 +51,15 @@ export function stopServers() {
   }
 }
 
+// The one inbox request the stubbed Supabase returns (shape of an inbox_requests row)
+const INBOX_REQUEST = {
+  id: REQUEST_ID, supplier_id: 'sup-dev', type: 'compliance', priority: 'high', deadline: '2026-11-13',
+  received_at: '2026-10-27T15:30:00Z', from_buyer: 'Clearfield Financial', from_contact: 'Priya Anand',
+  from_email: 'p.anand@clearfieldfinancial.com', from_platform: 'Email / Manual',
+  subject: 'Vendor Security Questionnaire (SIG-Lite)', body: 'Please complete the attached questionnaire.',
+  status: 'pending_response', tags: ['security-review'], attachments: ['clearfield_vendor_security_questionnaire.xlsx'],
+}
+
 const session = {
   access_token: 'dev-token', refresh_token: 'dev-refresh', token_type: 'bearer', expires_in: 3600 * 24 * 365,
   expires_at: Math.floor(Date.now() / 1000) + 3600 * 24 * 365,
@@ -62,10 +71,12 @@ export async function newPage(browser, contextOptions) {
   await context.addInitScript(([key, value]) => localStorage.setItem(key, value), ['sb-supabase-auth-token', JSON.stringify(session)])
   await context.route(`${SUPABASE}/**`, (route) => {
     const url = route.request().url()
-    const body = url.includes('/rest/v1/suppliers') ? { company_name: 'Acme Tech Solutions Inc.' }
-      : url.includes('/rest/v1/inbox_requests') ? { id: REQUEST_ID, subject: 'Vendor Security Questionnaire (SIG-Lite)', from_buyer: 'Clearfield Financial', deadline: '2026-11-13' }
-      : url.includes('/auth/v1/user') ? session.user
-      : {}
+    // supabase-js asks for one object with .single(), otherwise a list
+    const single = (route.request().headers().accept ?? '').includes('vnd.pgrst.object')
+    const row = url.includes('/rest/v1/suppliers') ? { id: 'sup-dev', company_name: 'Acme Tech Solutions Inc.' }
+      : url.includes('/rest/v1/inbox_requests') ? INBOX_REQUEST
+      : null
+    const body = row ? (single ? row : [row]) : url.includes('/auth/v1/user') ? session.user : {}
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
   })
   // Fonts come from Google; offline they fail, which is not a page error

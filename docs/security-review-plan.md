@@ -133,12 +133,16 @@ Remaining misses, stated plainly:
   1 false conflict (IAM-02) · Needs Evidence 6/6 · readiness 19/22 · answers 19/22 · remediation items
   exactly match gold (PT-01, PT-03, CC6.2, CC8.1) · findings 37/37 · summaries 7/7.
 
-What is left for Pranav (cannot be done from the cloud session):
-1. Supabase: run `docs/migrations/2026-10-31_security_review_additions.sql`, then
-   `npm run tprm:check-supabase -- <request_id>` (steps under Status above).
-2. Optional: `docs/migrations/2026-10-31_seed_clearfield_questionnaire.sql` to add req_006 to an existing account.
-3. Before merging: Railway Node version (>= 22.13), ESLint config, `npm audit` items, review the two
-   added readiness rules (UNSUPPORTED_NUMBER, GAP_DISCLOSED) and the IAM-04 gold label.
+Done since (2026-10-31): Supabase migration applied and `tprm:check-supabase` passed on the real project
+(Windows); fixed along the way: PDF font path on Windows, CRLF conversion of the sample PDFs
+(`.gitattributes`). Owner decisions: keep UNSUPPORTED_NUMBER and GAP_DISCLOSED; gold IAM-04 accepts
+Conflict or Needs Evidence (gold 2026-10-31.1). `npm audit fix` applied: 59 → 11 advisories, no
+critical; TipTap aligned at 3.32.2 (audit fix had left mismatched versions); the UI check now also
+drives the TipTap draft editor. Real-model e2e after the update: 0 unsafe Ready, conflicts 3/3,
+readiness 18/22 (one more answer held back than the previous run; run-to-run variance).
+
+Still open before merging: Railway Node version (>= 22.13; check the build log after merge), vite 5→8
+and zod 3→4 (major upgrades, not done), ESLint config, optional req_006 seed SQL for existing accounts.
 
 ### Step 9: final response
 

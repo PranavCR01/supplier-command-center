@@ -128,6 +128,30 @@ async function main() {
   check(errors.length === 0, `no console errors on desktop${errors.length ? `: ${errors.join(' | ')}` : ''}`)
   await context.close()
 
+  // ── TipTap draft editor (existing inbox feature; guards TipTap upgrades) ───
+  const t = await newPage(browser, { viewport: { width: 1280, height: 900 } })
+  const DRAFT = '## Compliance response\n\nAcme confirms coverage.\n\n| Item | Status |\n|---|---|\n| SOC 2 | Current |\n'
+  await t.context.route('**/api/ai/draft/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ draft: DRAFT, tokens: 0 }) }))
+  await t.context.route('**/api/ai/analyze-*', (r) => r.abort())
+  await t.page.goto(PAGE.replace(/\/inbox\/.*$/, '/inbox'))
+  await t.page.getByText('Vendor Security Questionnaire (SIG-Lite)').first().click()
+  check(await t.page.getByRole('link', { name: 'Open security review' }).isVisible(), 'inbox: compliance request offers "Open security review"')
+  await t.page.getByRole('button', { name: 'Edit draft' }).click()
+  const editor = t.page.locator('.ProseMirror')
+  await editor.waitFor()
+  check(await editor.locator('table td').count() === 2 && await editor.locator('h2').count() === 1, 'TipTap: editor renders the draft heading and table')
+  // Select the line the way a keyboard user would (a double-click left no selection in headless Chromium)
+  await editor.locator('p', { hasText: 'Acme confirms coverage.' }).click()
+  await t.page.keyboard.press('End')
+  await t.page.keyboard.press('Shift+Home')
+  await t.page.getByTitle('Bold').click()
+  check(await editor.locator('strong').count() === 1, 'TipTap: Bold applies')
+  await t.page.getByRole('button', { name: 'Preview' }).click()
+  await t.page.locator('strong').first().waitFor()
+  check(await t.page.locator('.ProseMirror').count() === 0, 'TipTap: Preview leaves edit mode and keeps the formatting')
+  check(t.errors.length === 0, `no console errors in the draft editor${t.errors.length ? `: ${t.errors.join(' | ')}` : ''}`)
+  await t.context.close()
+
   // ── Mobile 375px ─────────────────────────────────────────────────────────
   const m = await newPage(browser, { viewport: { width: 375, height: 812 } })
   for (const tab of ['documents', 'answers', 'remediation', 'response', 'activity']) {

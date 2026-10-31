@@ -147,6 +147,8 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 | 2026-10-30 | Prompts get today's date | Model called past dates "future" when judging "within 12 months" |
 | 2026-10-30 | Final response filtered in code; withheld answers never exported | Buyer only sees Ready or human-approved answers |
 | 2026-10-30 | Sidebar becomes a menu drawer below md | Fixed 256px sidebar squeezed every page to ~87px at 375px |
+| 2026-10-31 | Keep UNSUPPORTED_NUMBER and GAP_DISCLOSED readiness rules (owner decision) | They decide which answers may skip human review; zero cost on the eval |
+| 2026-10-31 | Gold IAM-04 accepts Conflict or Needs Evidence (gold 2026-10-31.1, owner decision) | Same shape as VULN-02; both outcomes reach a human |
 | 2026-10-30 | Prompt caching on the draft path does not fire (verified) | System prompt is ~1,100 tokens, under Haiku 4.5's 4,096 minimum; earlier "billed once per 5 min" note was wrong |
 
 ## Known issues (fix before demo)
@@ -155,7 +157,9 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 - [x] contextBuilder.ts cert fallback never ran (fixed: `services/certSelection.ts`, tested)
 - [ ] Run `docs/migrations/2026-10-31_security_review_additions.sql` + `npm run tprm:check-supabase` before using the security review on the real DB
 - [ ] Existing demo accounts lack inbox message req_006 (Clearfield security questionnaire); new seeds include it
-- [ ] `npm run lint` has no ESLint config in the repo; `npm audit`: axios, @tiptap/core (high), @anthropic-ai/sdk (moderate)
+- [x] `npm audit fix` applied 2026-10-31 (59 → 11 advisories, criticals gone; TipTap aligned at 3.32.2, editor covered by `tprm:ui-check`)
+- [ ] Remaining `npm audit` highs need major upgrades: vite 5→8 (dev server only), zod 3→4 — not done
+- [ ] `npm run lint` has no ESLint config in the repo (not needed to run; add after the demo)
 - [ ] package.json now declares `engines.node >=22.13` (pdfjs-dist 6 needs it) — confirm Railway's Node version before merging
 - [x] Sidebar "Loading..." persists after seed until reload (fix: window.location.reload() after seedAcme)
 - [x] Settings shows cached email from previous session (fix: fresh supabase.auth.getUser() on mount)
