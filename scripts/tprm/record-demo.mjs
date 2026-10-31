@@ -2,8 +2,9 @@
 // demo). Same offline setup as the UI check: dev API on the in-memory store, Vite, Supabase stubbed.
 // Captions are an overlay injected by this script, not part of the app.
 //
-// Usage: ANTHROPIC_API_KEY=... npm run tprm:record-demo   (~5 minutes; writes $DEMO_OUT or ./demo-output)
+// Usage (ANTHROPIC_API_KEY from the environment or .env): npm run tprm:record-demo   (~5 minutes; writes $DEMO_OUT or ./demo-output)
 
+import 'dotenv/config'
 import fs from 'fs'
 import path from 'path'
 import { chromium, newPage, PAGE, ROOT, startServers, stopServers } from './browser-harness.mjs'

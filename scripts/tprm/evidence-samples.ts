@@ -2,8 +2,9 @@
 // analyze documents, then for every questionnaire question gather evidence, check quotes,
 // and check for conflicts. Scores step 3 against gold.json. Measures; not a gate.
 //
-// Usage: ANTHROPIC_API_KEY=... npm run tprm:evidence-samples   (optional: TPRM_MODEL=..., ONLY=IAM-01,VULN-02)
+// Usage (ANTHROPIC_API_KEY from the environment or .env): npm run tprm:evidence-samples   (optional: TPRM_MODEL=..., ONLY=IAM-01,VULN-02)
 
+import 'dotenv/config'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'

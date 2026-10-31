@@ -2,9 +2,10 @@
 // with the real model and the in-memory store, then scores the output against gold.json.
 // This measures; it is not a pass/fail gate (exit 1 only if a document fails to analyze).
 //
-// Usage: ANTHROPIC_API_KEY=... npm run tprm:analyze-samples   (optional: TPRM_MODEL=...)
+// Usage (ANTHROPIC_API_KEY from the environment or .env): npm run tprm:analyze-samples   (optional: TPRM_MODEL=...)
 // Writes eval-results/analysis-<prompt versions>-<timestamp>.json
 
+import 'dotenv/config'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'

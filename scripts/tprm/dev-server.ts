@@ -7,6 +7,7 @@
 //   --real: Claude Haiku via ANTHROPIC_API_KEY
 // Auth: send "Authorization: Bearer dev-token". Supplier and request ids are fixed (see below).
 
+import 'dotenv/config'
 import cors from 'cors'
 import express, { RequestHandler } from 'express'
 import path from 'path'

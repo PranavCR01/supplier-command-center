@@ -2,7 +2,7 @@
 // Runs steps 2-4 with the real model and the in-memory store, scores against gold.json,
 // and reports misses next to the score. Exit 1 if any answer is unsafely marked Ready.
 //
-// Usage: ANTHROPIC_API_KEY=... npm run eval:tprm
+// Usage (ANTHROPIC_API_KEY from the environment or .env): npm run eval:tprm
 //   RUNS=3        repeat the whole pipeline to measure consistency (default 1)
 //   TPRM_MODEL=…  model to evaluate (default Haiku 4.5)
 //   TPRM_AS_OF=…  date the questions are answered on (default 2026-10-30, the gold set's date)
@@ -10,6 +10,7 @@
 // The eval is circular — the same author wrote the documents, labels and prompts — so treat it
 // as a regression harness, not a benchmark.
 
+import 'dotenv/config'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'

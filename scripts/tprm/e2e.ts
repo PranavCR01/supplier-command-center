@@ -3,8 +3,9 @@
 // In-memory store, so no Supabase needed. Scores the answers against gold.json. Exit 1 on any
 // unsafe Ready or a broken step.
 //
-// Usage: ANTHROPIC_API_KEY=... npm run tprm:e2e   (~3 minutes, a few cents)
+// Usage (ANTHROPIC_API_KEY from the environment or .env): npm run tprm:e2e   (~3 minutes, a few cents)
 
+import 'dotenv/config'
 import ExcelJS from 'exceljs'
 import express, { RequestHandler } from 'express'
 import fs from 'fs'
