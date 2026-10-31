@@ -1,5 +1,5 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2026-10-30 | Phase: Security Review (vendor-side TPRM) built on branch `claude/loving-rubin-fi9o7n` — not merged; Supabase check pending
+> Last updated: 2026-10-31 | Phase: Security Review (vendor-side TPRM) built on branch `claude/loving-rubin-fi9o7n` — not merged; verified against the real Supabase project
 
 ## CURRENT WORK — read first
 Building the Security Review feature (vendor-side TPRM, modeled on SAFE Security's TPRM product).
@@ -155,7 +155,7 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 - [x] "PDF parsing ✓" in Slice 2 was inaccurate (wording fixed; security review adds real parsing)
 - [x] Prompt caching never fires on the draft path — verified (cache read/write 0); comments corrected, cache_control left in place
 - [x] contextBuilder.ts cert fallback never ran (fixed: `services/certSelection.ts`, tested)
-- [ ] Run `docs/migrations/2026-10-31_security_review_additions.sql` + `npm run tprm:check-supabase` before using the security review on the real DB
+- [x] Migration `2026-10-31_security_review_additions.sql` applied; `npm run tprm:check-supabase` passed on the real project (2026-10-31, Windows, after the dependency update)
 - [ ] Existing demo accounts lack inbox message req_006 (Clearfield security questionnaire); new seeds include it
 - [x] `npm audit fix` applied 2026-10-31 (59 → 11 advisories, criticals gone; TipTap aligned at 3.32.2, editor covered by `tprm:ui-check`)
 - [ ] Remaining `npm audit` highs need major upgrades: vite 5→8 (dev server only), zod 3→4 — not done
