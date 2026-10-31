@@ -13,9 +13,8 @@ run tests after every step (`npm test`, `npm run tprm:verify-samples`, `npx tsc 
 Live checks (need `ANTHROPIC_API_KEY`): `npm run eval:tprm`, `npm run tprm:e2e`. Real DB: `npm run tprm:check-supabase`.
 
 ## What we're building
-AI-powered supplier portal — the "other side" of Valorant's Astra procurement platform.
+AI-powered supplier portal — the supplier side of buyer procurement and third-party security reviews.
 Suppliers manage buyer relationships, respond to RFPs, track compliance. All AI-powered.
-Demo target: Biju Mohan, Co-Founder of Valorant (job application project).
 Live URL: https://supplier-command-center.vercel.app
 
 ## Stack

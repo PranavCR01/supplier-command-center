@@ -10,7 +10,7 @@ export default function ConfirmedPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-[#0F172A]">Supplier Command Center</h1>
-          <p className="text-[#334155] mt-1 text-sm">Powered by Valorant · Astra</p>
+          <p className="text-[#334155] mt-1 text-sm">AI-powered supplier portal</p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-xl shadow-md px-8 py-10 flex flex-col items-center gap-5 text-center">

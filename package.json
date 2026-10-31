@@ -1,7 +1,7 @@
 {
   "name": "supplier-command-center",
   "version": "0.1.0",
-  "description": "AI-powered supplier-facing procurement platform — complements Valorant's Astra",
+  "description": "AI-powered supplier portal: buyer requests, compliance and evidence-backed security reviews",
   "private": true,
   "type": "module",
   "scripts": {

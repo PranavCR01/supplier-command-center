@@ -31,7 +31,6 @@ Your role is to help suppliers — companies that sell products or services to e
 ### Key procurement platforms suppliers encounter:
 - **Coupa**: Enterprise S2P platform. Suppliers use Coupa Supplier Portal (CSP). 
 - **SAP Ariba**: Legacy enterprise platform. Ariba Network is the supplier portal.
-- **Astra (Valorant)**: AI-native procurement platform. Buyer-side orchestration tool. Newer platform, growing in mid-market.
 - **Oracle Procurement / PeopleSoft**: Often in public sector and large enterprises.
 - **Jaggaer / Ivalua**: Used in manufacturing and complex industries.
 
