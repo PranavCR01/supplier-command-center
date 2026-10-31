@@ -31,7 +31,8 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 8 | Remediation items + Jira-style CSV/JSON export | Done |
 | 9 | Final response assembled from Ready answers only | Done |
 | 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | Done (Supabase check + merge decisions are Pranav's) |
-| 11 | Fixes from local testing (14 items, below) | Done in code + UI check; **run `docs/migrations/2026-11-01_final_answer.sql` on Supabase** |
+| 11 | Fixes from local testing (14 items, below) | Done; `2026-11-01_final_answer.sql` applied on Supabase |
+| 12 | Merge to main and deploy | Done 2026-10-31 (Railway node 22.23.3) |
 
 **Step 6 local check (needs the real DB; not possible in the cloud session):**
 1. Supabase SQL editor: run `docs/migrations/2026-10-31_security_review_additions.sql` → "Success. No rows returned".
@@ -164,8 +165,9 @@ critical; TipTap aligned at 3.32.2 (audit fix had left mismatched versions); the
 drives the TipTap draft editor. Real-model e2e after the update: 0 unsafe Ready, conflicts 3/3,
 readiness 18/22 (one more answer held back than the previous run; run-to-run variance).
 
-Still open before merging: Railway Node version (>= 22.13; check the build log after merge), vite 5→8
-and zod 3→4 (major upgrades, not done), ESLint config, optional req_006 seed SQL for existing accounts.
+Merged to main 2026-10-31 after the step 11 fixes (all checks plus a real-model e2e passed: 0 unsafe Ready,
+conflicts 3/3, readiness 19/22). Railway runs node 22.23.3. Still open: vite 5→8 and zod 3→4 (major
+upgrades, not done), ESLint config, optional req_006 seed SQL for existing accounts.
 
 ### Step 9: final response
 

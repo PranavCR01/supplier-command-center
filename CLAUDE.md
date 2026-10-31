@@ -1,5 +1,5 @@
 # CLAUDE.md — Supplier Command Center
-> Last updated: 2026-10-31 | Phase: Security Review (vendor-side TPRM) built on branch `claude/loving-rubin-fi9o7n` — not merged; verified against the real Supabase project
+> Last updated: 2026-10-31 | Phase: Security Review (vendor-side TPRM) merged to main and deployed 2026-10-31 (built on `claude/loving-rubin-fi9o7n`)
 
 ## CURRENT WORK — read first
 Building the Security Review feature (vendor-side TPRM, modeled on SAFE Security's TPRM product).
@@ -7,7 +7,7 @@ Building the Security Review feature (vendor-side TPRM, modeled on SAFE Security
 prompts, readiness rules, eval design, decisions, cut order, and SAFE mapping.
 SAFE product and domain background (agents, how they evaluate AI, SOC 2/TPRM primer): `docs/safe-context.md`.
 Sample data and gold labels: `test_data/tprm/README.md`, `test_data/tprm/gold.json`.
-Rules: work only on `claude/loving-rubin-fi9o7n`; never merge or touch production until Pranav says so;
+Rules: work on a branch; never merge or touch production unless Pranav says so (he approved the 2026-10-31 merge);
 run tests after every step (`npm test`, `npm run tprm:verify-samples`, `npx tsc --noEmit -p tsconfig.server.json`,
 `npx tsc --noEmit`, `npx tsc -p tsconfig.scripts.json`, `npm run tprm:ui-check`) and confirm tests can fail.
 Live checks (need `ANTHROPIC_API_KEY`): `npm run eval:tprm`, `npm run tprm:e2e`. Real DB: `npm run tprm:check-supabase`.
@@ -157,12 +157,12 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 - [x] Prompt caching never fires on the draft path — verified (cache read/write 0); comments corrected, cache_control left in place
 - [x] contextBuilder.ts cert fallback never ran (fixed: `services/certSelection.ts`, tested)
 - [x] Migration `2026-10-31_security_review_additions.sql` applied; `npm run tprm:check-supabase` passed on the real project (2026-10-31, Windows, after the dependency update)
-- [ ] Run `docs/migrations/2026-11-01_final_answer.sql` on Supabase (adds `questionnaire_answers.final_answer`; editing or resolving an answer fails without it)
+- [x] `docs/migrations/2026-11-01_final_answer.sql` applied on Supabase (2026-10-31)
 - [ ] Existing demo accounts lack inbox message req_006 (Clearfield security questionnaire); new seeds include it
 - [x] `npm audit fix` applied 2026-10-31 (59 → 11 advisories, criticals gone; TipTap aligned at 3.32.2, editor covered by `tprm:ui-check`)
 - [ ] Remaining `npm audit` highs need major upgrades: vite 5→8 (dev server only), zod 3→4 — not done
 - [ ] `npm run lint` has no ESLint config in the repo (not needed to run; add after the demo)
-- [ ] package.json now declares `engines.node >=22.13` (pdfjs-dist 6 needs it) — confirm Railway's Node version before merging
+- [x] package.json declares `engines.node >=22.13` (pdfjs-dist 6 needs it); Railway runs node 22.23.3 (checked 2026-10-31)
 - [x] Sidebar "Loading..." persists after seed until reload (fix: window.location.reload() after seedAcme)
 - [x] Settings shows cached email from previous session (fix: fresh supabase.auth.getUser() on mount)
 - [x] AI draft shows [FLAGGED] placeholders for missing case studies (fix: update system prompt + seed data)
