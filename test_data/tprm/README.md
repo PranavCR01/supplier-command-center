@@ -29,8 +29,8 @@ test firm (Redline Assurance Group) are made up; no real firm's name is attached
 | TRN-02 | Policy p.5: quarterly phishing simulations | Phishing summary p.1: two campaigns in 12 months |
 | TRN-01 | Policy p.5: all personnel train annually | Phishing summary p.1: 87% completion (Conflict or Needs Evidence both acceptable) |
 
-**Decoys** (must *not* be flagged as conflicts): IAM-02 (VPN/console MFA is genuinely enforced),
-IAM-04 (policy and SOC 2 agree on quarterly reviews; the issue is an auditor exception), DATA-01.
+**Decoys** (must *not* be flagged as conflicts): IAM-02 (VPN/console MFA is genuinely enforced), DATA-01.
+IAM-04 was a decoy until gold 2026-10-31.1; it now accepts Conflict or Needs Evidence (see its notes in `gold.json`).
 
 **Auditor exceptions**: CC6.2 access review (2 of 25 removed 41 days late, corroborated by rows
 27-28 of the access review export) and CC8.1 emergency change approved 3 business days late.

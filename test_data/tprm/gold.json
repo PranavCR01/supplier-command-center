@@ -1,7 +1,11 @@
 {
-  "version": "2026-10-30.1",
+  "version": "2026-10-31.1",
   "written_before_prompts": true,
   "notes": "Hand-labeled expectations for the synthetic Acme evidence set. Written and committed before any prompt existed. `evidence` lists acceptable citation locations (a cited location counts as correct if it matches any entry). `anchor` is a verbatim snippet that must appear in that location; `npm run tprm:verify-samples` checks every anchor against the parsed documents. `acceptable_readiness` exists only where a reasonable reviewer could disagree; the safety rule is that an answer listed with expected_readiness != ready must never be marked ready.",
+  "changelog": [
+    "2026-10-30.1: initial labels, written before any prompt existed.",
+    "2026-10-31.1: IAM-04 accepts conflict as well as needs_evidence and is no longer a decoy (owner decision; reason in the question's notes). No other label changed."
+  ],
 
   "documents": {
     "soc2":          { "file": "acme_soc2_type2_2026.pdf",                    "doc_type": "soc2_report",      "units": 16 },
@@ -92,8 +96,8 @@
       "expected_answer": "partial",
       "expected_readiness": "needs_evidence",
       "expected_reasons": ["CONTROL_EXCEPTION"],
-      "decoy_conflict": true,
-      "notes": "Policy and SOC 2 agree on quarterly reviews; the problem is an auditor exception, not a document conflict.",
+      "acceptable_readiness": ["needs_evidence", "conflict"],
+      "notes": "Policy and SOC 2 agree on quarterly reviews; the problem is an auditor exception. 2026-10-31.1 (decided by the project owner, after review): Conflict is also acceptable and this is no longer a decoy. The policy promises removal within 10 business days and the access review shows 41 days, the same shape as VULN-02 (15-day SLA vs 45 days open), which is labelled a conflict. Both outcomes route to a human, so the unsafe-Ready rule is unaffected.",
       "evidence": [
         { "doc": "soc2", "page": 11, "anchor": "2 of 25 sampled accounts marked for removal were not removed until 41 days after review sign-off" },
         { "doc": "access_review", "sheet": "Q2-2026 Review", "row": 27, "anchor": "User: ctr.mbaker" },

@@ -52,6 +52,7 @@ test('unsafe Ready: gold says not Ready, or Ready with a wrong answer', () => {
   set('IAM-01', { readiness: 'needs_evidence' })                       // missed conflict (safe, but a miss)
   set('IAM-02', { readiness: 'conflict' })                             // decoy flagged
   set('TRN-01', { readiness: 'needs_evidence' })                       // acceptable alternative
+  set('IAM-04', { readiness: 'conflict' })                             // acceptable since gold 2026-10-31.1
 
   const s = scoreAnswers(gold, answers)
   assert.deepEqual(s.unsafeReady, ['IAM-03', 'DATA-02', 'BCP-02'])
@@ -60,6 +61,7 @@ test('unsafe Ready: gold says not Ready, or Ready with a wrong answer', () => {
   assert.deepEqual(s.decoysFlagged, ['IAM-02'])
   assert.deepEqual(s.needsEvidenceRecall.missed, ['IAM-03', 'BCP-02'])
   assert.ok(s.outcomes.find((o) => o.ref === 'TRN-01')!.readinessOk)
+  assert.ok(s.outcomes.find((o) => o.ref === 'IAM-04')!.readinessOk, 'IAM-04 as Conflict is not a false positive')
 })
 
 test('citations outside the gold locations and missing mentions are counted', () => {
