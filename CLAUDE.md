@@ -148,6 +148,8 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 | 2026-10-30 | Sidebar becomes a menu drawer below md | Fixed 256px sidebar squeezed every page to ~87px at 375px |
 | 2026-10-31 | Keep UNSUPPORTED_NUMBER and GAP_DISCLOSED readiness rules (owner decision) | They decide which answers may skip human review; zero cost on the eval |
 | 2026-10-31 | Gold IAM-04 accepts Conflict or Needs Evidence (gold 2026-10-31.1, owner decision) | Same shape as VULN-02; both outcomes reach a human |
+| 2026-10-31 | Reviewer chooses the Response value (Yes/No/Partial/N/A), stored as `final_answer` | "Not addressed" isn't a value a buyer's questionnaire accepts; a person decides |
+| 2026-10-31 | Jira CSV skips items that already have a Jira key | Re-importing would create duplicate tickets |
 | 2026-10-30 | Prompt caching on the draft path does not fire (verified) | System prompt is ~1,100 tokens, under Haiku 4.5's 4,096 minimum; earlier "billed once per 5 min" note was wrong |
 
 ## Known issues (fix before demo)
@@ -155,6 +157,7 @@ All have RLS — users see only their own data via `user_id`. Full schema in `do
 - [x] Prompt caching never fires on the draft path — verified (cache read/write 0); comments corrected, cache_control left in place
 - [x] contextBuilder.ts cert fallback never ran (fixed: `services/certSelection.ts`, tested)
 - [x] Migration `2026-10-31_security_review_additions.sql` applied; `npm run tprm:check-supabase` passed on the real project (2026-10-31, Windows, after the dependency update)
+- [ ] Run `docs/migrations/2026-11-01_final_answer.sql` on Supabase (adds `questionnaire_answers.final_answer`; editing or resolving an answer fails without it)
 - [ ] Existing demo accounts lack inbox message req_006 (Clearfield security questionnaire); new seeds include it
 - [x] `npm audit fix` applied 2026-10-31 (59 → 11 advisories, criticals gone; TipTap aligned at 3.32.2, editor covered by `tprm:ui-check`)
 - [ ] Remaining `npm audit` highs need major upgrades: vite 5→8 (dev server only), zod 3→4 — not done

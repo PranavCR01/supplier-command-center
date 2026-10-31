@@ -13,7 +13,7 @@ function answer(ref: string, row: number, patch: Partial<QuestionnaireAnswerRow>
   return {
     id: ref, supplier_id: 's', run_id: 'run', question_ref: ref, question_row: row, domain: 'Gov', question_text: `${ref}?`,
     answer: 'yes', response_text: `Drafted ${ref}.`, conflict: null, verifier: null, model_confidence: 0.9,
-    readiness: 'ready', reasons: [], unsupported_numbers: [], errors: [], review_status: 'pending', final_text: null,
+    readiness: 'ready', reasons: [], unsupported_numbers: [], errors: [], review_status: 'pending', final_text: null, final_answer: null,
     reviewed_at: null, created_at: '', updated_at: '',
     evidence: [
       { document_id: 'd', filename: 'soc2.pdf', locator: { page: 10 }, quote: 'q', stance: 'supports', note: '', quote_verified: true, failure: null, relocated_from: null, cited: true },
@@ -51,6 +51,14 @@ test('entries: questionnaire order, edited text wins, only cited verified eviden
   assert.deepEqual(withheld.map((w) => [w.ref, w.why]), [['GOV-02', 'rejected'], ['DATA-04', 'needs_evidence']])
   assert.deepEqual(withheld[1].reasons, ['NO_EVIDENCE'])
   assert.match(toMarkdown('T', included, 4), /2 of 4 questions answered[\s\S]*## GOV-01 — GOV-01\?[\s\S]*\*\*Response:\*\* Yes/)
+})
+
+test("a reviewer's chosen response overrides the AI label in the export", () => {
+  const { included } = buildResponse([
+    answer('BCP-02', 22, { readiness: 'needs_evidence', answer: 'not_addressed', review_status: 'edited', final_text: 'Not stated; supplied separately.', final_answer: 'n/a' }),
+    answer('IAM-03', 7, { answer: 'partial', review_status: 'approved', final_answer: 'no' }),
+  ])
+  assert.deepEqual(included.map((e) => [e.ref, e.response]), [['IAM-03', 'No'], ['BCP-02', 'N/A']])
 })
 
 test("fills the buyer's own questionnaire; withheld rows stay blank", async () => {

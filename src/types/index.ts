@@ -235,6 +235,9 @@ export interface QuestionnaireRun {
 }
 
 export type ReviewStatus = 'pending' | 'approved' | 'edited' | 'rejected'
+// The Response value a reviewer chose for the buyer's questionnaire (overrides the AI's label)
+export type FinalAnswer = 'yes' | 'no' | 'partial' | 'n/a'
+export type AnswerReviewPatch = Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'final_answer' | 'reviewed_at'>
 
 export interface QuestionnaireAnswerRow extends DraftedAnswer {
   id: string
@@ -242,6 +245,7 @@ export interface QuestionnaireAnswerRow extends DraftedAnswer {
   run_id: string
   review_status: ReviewStatus
   final_text: string | null
+  final_answer: FinalAnswer | null
   reviewed_at: string | null
   created_at: string
   updated_at: string

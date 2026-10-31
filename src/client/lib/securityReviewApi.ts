@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import type {
   ActivityEvent,
   DocumentFinding,
+  FinalAnswer,
   Locator,
   QuestionnaireAnswerRow,
   QuestionnaireRun,
@@ -51,15 +52,15 @@ export type RunEvent =
   | { type: 'error'; message: string }
 
 export type ReviewBody =
-  | { action: 'approve' }
-  | { action: 'edit'; final_text: string }
-  | { action: 'resolve'; choice: 'a' | 'b' | 'custom'; final_text: string; note?: string }
+  | { action: 'approve'; final_answer?: FinalAnswer }
+  | { action: 'edit'; final_text: string; final_answer?: FinalAnswer }
+  | { action: 'resolve'; choice: 'a' | 'b' | 'custom'; final_text: string; note?: string; final_answer?: FinalAnswer }
   | { action: 'reject'; note?: string }
 
 export type RemediationRow = RemediationItem & { overdue: boolean }
 
 export interface ResponseEntry {
-  ref: string; row: number; domain: string | null; question: string; response: 'Yes' | 'No' | 'Partial' | ''
+  ref: string; row: number; domain: string | null; question: string; response: 'Yes' | 'No' | 'Partial' | 'N/A' | ''
   explanation: string; evidence_reference: string; signed_off: 'human' | 'checks'
 }
 export interface WithheldEntry {

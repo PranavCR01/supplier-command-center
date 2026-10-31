@@ -1,4 +1,4 @@
-import type { AnswerValue, Locator, Readiness, ReadinessReason, ReviewStatus, SecurityDocType } from '../../../types'
+import type { AnswerValue, FinalAnswer, Locator, Readiness, ReadinessReason, RemediationStatus, ReviewStatus, SecurityDocType } from '../../../types'
 
 export const READINESS_LABEL: Record<Readiness, string> = {
   ready: 'Ready',
@@ -18,6 +18,13 @@ export const ANSWER_LABEL: Record<AnswerValue, string> = {
   no: 'No',
   partial: 'Partial',
   not_addressed: 'Not addressed',
+}
+
+export const FINAL_ANSWER_LABEL: Record<FinalAnswer, string> = {
+  yes: 'Yes',
+  no: 'No',
+  partial: 'Partial',
+  'n/a': 'N/A',
 }
 
 export const REVIEW_LABEL: Record<ReviewStatus, string> = {
@@ -40,7 +47,7 @@ export const REASON_LABEL: Record<ReadinessReason, string> = {
   CARVE_OUT: 'Relies on a carved-out subservice provider',
   GAP_DISCLOSED: 'Admits a gap — vendor sign-off needed',
   VERIFIER_UNSUPPORTED: 'Second check: not supported',
-  VERIFIER_PARTIAL: 'Second check: overstated',
+  VERIFIER_PARTIAL: 'Second check: not fully supported',
   LOW_CONFIDENCE: 'Low model confidence',
 }
 
@@ -89,4 +96,8 @@ export const EVENT_LABEL: Record<string, string> = {
   remediation_generated: 'Remediation items generated',
   remediation_updated: 'Remediation item updated',
   response_exported: 'Response exported',
+}
+
+export const STATUS_LABEL: Record<RemediationStatus, string> = {
+  open: 'Open', in_progress: 'In progress', done: 'Done', risk_accepted: 'Risk accepted',
 }

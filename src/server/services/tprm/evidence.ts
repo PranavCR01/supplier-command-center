@@ -111,6 +111,14 @@ export function checkPassages(ev: EvidenceContext, raw: z.infer<typeof GatherSch
   return out
 }
 
+// The model refers to passages as P1, P2...; readers need the document and page instead
+export function namePassages(text: string, passages: EvidencePassage[]): string {
+  return text.replace(/\bP(\d+)\b/g, (m, n: string) => {
+    const p = passages[Number(n) - 1]
+    return p ? `${p.filename.replace(/\.(pdf|xlsx)$/i, '')} (${p.locator ? locatorLabel(p.locator) : 'no location'})` : m
+  })
+}
+
 function passageLine(p: EvidencePassage, n: number, docKey: string): string {
   return `[P${n}] ${docKey} ${p.filename}, ${p.locator ? locatorLabel(p.locator) : 'no location'} (${p.stance}): "${p.quote}"`
 }
@@ -149,13 +157,16 @@ export async function gatherQuestionEvidence(llm: TprmLlm, ev: EvidenceContext, 
   }
   const { conflict, a, b, explanation } = checked.data
   if (!conflict) {
-    result.conflict = { status: 'none', explanation }
+    result.conflict = { status: 'none', explanation: namePassages(explanation, verified) }
     return result
   }
   const pa = a !== null ? verified[a - 1] : undefined
   const pb = b !== null ? verified[b - 1] : undefined
   const validPair = pa && pb && pa.document_id !== pb.document_id
-  result.conflict = { status: 'detected', conflict: { a: validPair ? pa : null, b: validPair ? pb : null, explanation } }
+  result.conflict = {
+    status: 'detected',
+    conflict: { a: validPair ? pa : null, b: validPair ? pb : null, explanation: namePassages(explanation, verified) },
+  }
   return result
 }
 

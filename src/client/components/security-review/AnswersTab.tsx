@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Check, Loader2, Pencil, Play, X } from 'lucide-react'
 import { ReviewBody, securityReviewApi } from '@/lib/securityReviewApi'
-import type { EvidencePassage, QuestionnaireAnswerRow, QuestionnaireRun, Readiness } from '../../../types'
+import type { ActivityEvent, EvidencePassage, FinalAnswer, QuestionnaireAnswerRow, QuestionnaireRun, Readiness } from '../../../types'
 import type { EvidenceTarget } from './EvidenceDrawer'
-import { ANSWER_LABEL, locatorLabel, READINESS_CLASS, READINESS_LABEL, REASON_LABEL, REVIEW_LABEL, shortName } from './labels'
+import { ANSWER_LABEL, FINAL_ANSWER_LABEL, locatorLabel, READINESS_CLASS, READINESS_LABEL, REASON_LABEL, REVIEW_LABEL, shortName } from './labels'
+import { namePassages, uniqueByLocation } from './text'
 
 interface Props {
   requestId: string
@@ -35,7 +36,12 @@ function PassageChip({ p, onOpen }: { p: EvidencePassage; onOpen: Props['onOpenE
   )
 }
 
-function ConflictView({ answer, onOpen }: { answer: QuestionnaireAnswerRow; onOpen: Props['onOpenEvidence'] }) {
+const CHOICE_LABEL = { a: 'A (commitment)', b: 'B (evidence against)', custom: 'neither — own wording' } as const
+type Choice = keyof typeof CHOICE_LABEL
+
+function ConflictView({ answer, resolution, onOpen }: {
+  answer: QuestionnaireAnswerRow; resolution: ActivityEvent | undefined; onOpen: Props['onOpenEvidence']
+}) {
   const c = answer.conflict
   if (!c) return null
   const side = (label: string, p: EvidencePassage | null) => (
@@ -49,17 +55,54 @@ function ConflictView({ answer, onOpen }: { answer: QuestionnaireAnswerRow; onOp
       ) : <p className="text-sm text-slate-500">The model did not name a valid passage.</p>}
     </div>
   )
+  const body = (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {side('A — stated commitment', c.a)}
+        {side('B — evidence against it', c.b)}
+      </div>
+      <p className="text-sm text-red-900">{namePassages(c.explanation, answer.evidence)}</p>
+    </>
+  )
+  // Once a person has decided, keep the disagreement on record but out of the way
+  if (answer.review_status !== 'pending') {
+    const choice = resolution?.payload.choice as Choice | undefined
+    const note = resolution?.payload.note as string | undefined
+    return (
+      <details data-testid="conflict-resolved" className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+        <summary className="cursor-pointer text-slate-700">
+          {answer.review_status === 'rejected' ? 'Conflict: answer rejected' : `Conflict resolved${choice ? `: chose ${CHOICE_LABEL[choice]}` : ''}`}
+          {note && <span className="text-slate-500"> · “{note}”</span>}
+          <span className="text-slate-500"> · show the disagreement</span>
+        </summary>
+        <div className="mt-2 space-y-2">{body}</div>
+      </details>
+    )
+  }
   return (
     <div data-testid="conflict-view" className="rounded-lg bg-red-50 border border-red-200 p-3 space-y-2">
       <p className="flex items-center gap-1.5 text-sm font-semibold text-red-800">
         <AlertTriangle className="w-4 h-4" /> Your documents disagree
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {side('A — stated commitment', c.a)}
-        {side('B — evidence against it', c.b)}
-      </div>
-      <p className="text-sm text-red-900">{c.explanation}</p>
+      {body}
     </div>
+  )
+}
+
+// The Response cell the buyer sees; starts at the AI's label, and must be chosen when the AI had none
+function ResponsePicker({ name, value, onChange }: { name: string; value: FinalAnswer | null; onChange: (v: FinalAnswer) => void }) {
+  return (
+    <fieldset>
+      <legend className="text-xs font-semibold text-slate-600 mb-1">Response</legend>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm" data-testid="response-picker">
+        {(Object.keys(FINAL_ANSWER_LABEL) as FinalAnswer[]).map((v) => (
+          <label key={v} className="flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" name={name} checked={value === v} onChange={() => onChange(v)} className="cursor-pointer accent-[#0369A1]" />
+            {FINAL_ANSWER_LABEL[v]}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   )
 }
 
@@ -69,8 +112,11 @@ function ReviewControls({ answer, onReview, pending }: {
   const isConflict = answer.readiness === 'conflict'
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(answer.final_text ?? answer.response_text ?? '')
-  const [choice, setChoice] = useState<'a' | 'b' | 'custom'>('b')
+  const [choice, setChoice] = useState<Choice>('b')
   const [note, setNote] = useState('')
+  const aiLabel = answer.answer === 'not_addressed' ? null : answer.answer
+  const [response, setResponse] = useState<FinalAnswer | null>(answer.final_answer ?? aiLabel)
+  const responseBody = response ? { final_answer: response } : {}
 
   if (isConflict && answer.review_status === 'pending') {
     return (
@@ -81,7 +127,7 @@ function ReviewControls({ answer, onReview, pending }: {
             {(['a', 'b', 'custom'] as const).map((c) => (
               <label key={c} className="flex items-center gap-1.5 cursor-pointer">
                 <input type="radio" name={`choice-${answer.id}`} checked={choice === c} onChange={() => setChoice(c)} className="cursor-pointer accent-[#0369A1]" />
-                {c === 'a' ? 'A (commitment)' : c === 'b' ? 'B (evidence against)' : 'Neither — my own wording'}
+                {c === 'custom' ? 'Neither — my own wording' : CHOICE_LABEL[c]}
               </label>
             ))}
           </div>
@@ -94,8 +140,9 @@ function ReviewControls({ answer, onReview, pending }: {
           Note for the record (optional)
           <input value={note} onChange={(e) => setNote(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm font-normal text-[#0F172A] focus:border-[#0F172A] focus:outline-none focus:ring-2 focus:ring-slate-200" />
         </label>
+        <ResponsePicker name={`response-${answer.id}`} value={response} onChange={setResponse} />
         <div className="flex flex-wrap gap-2">
-          <button className={btnPrimary} disabled={pending || !text.trim()} onClick={() => onReview({ action: 'resolve', choice, final_text: text, note: note || undefined })}>
+          <button className={btnPrimary} disabled={pending || !text.trim() || !response} onClick={() => onReview({ action: 'resolve', choice, final_text: text, note: note || undefined, ...responseBody })}>
             <Check className="w-4 h-4" /> Resolve conflict
           </button>
           <button className={btnGhost} disabled={pending} onClick={() => onReview({ action: 'reject' })}><X className="w-4 h-4" /> Reject</button>
@@ -111,8 +158,9 @@ function ReviewControls({ answer, onReview, pending }: {
           Edit answer
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm font-normal text-[#0F172A] focus:border-[#0F172A] focus:outline-none focus:ring-2 focus:ring-slate-200" />
         </label>
+        <ResponsePicker name={`response-${answer.id}`} value={response} onChange={setResponse} />
         <div className="flex flex-wrap gap-2">
-          <button className={btnPrimary} disabled={pending || !text.trim()} onClick={() => { onReview({ action: 'edit', final_text: text }); setEditing(false) }}>
+          <button className={btnPrimary} disabled={pending || !text.trim() || !response} onClick={() => { onReview({ action: 'edit', final_text: text, ...responseBody }); setEditing(false) }}>
             <Check className="w-4 h-4" /> Save and approve
           </button>
           <button className={btnGhost} onClick={() => setEditing(false)}>Cancel</button>
@@ -123,7 +171,7 @@ function ReviewControls({ answer, onReview, pending }: {
 
   return (
     <div className="flex flex-wrap gap-2">
-      {!isConflict && answer.review_status !== 'approved' && answer.response_text && (
+      {!isConflict && answer.review_status !== 'approved' && answer.response_text && (answer.final_answer || aiLabel) && (
         <button className={btnPrimary} disabled={pending} onClick={() => onReview({ action: 'approve' })}><Check className="w-4 h-4" /> Approve</button>
       )}
       {!isConflict && <button className={btnGhost} disabled={pending} onClick={() => setEditing(true)}><Pencil className="w-4 h-4" /> Edit</button>}
@@ -134,10 +182,11 @@ function ReviewControls({ answer, onReview, pending }: {
   )
 }
 
-function AnswerCard({ answer, onOpen, onReview, pending }: {
-  answer: QuestionnaireAnswerRow; onOpen: Props['onOpenEvidence']; onReview: (b: ReviewBody) => void; pending: boolean
+function AnswerCard({ answer, resolution, onOpen, onReview, pending }: {
+  answer: QuestionnaireAnswerRow; resolution: ActivityEvent | undefined; onOpen: Props['onOpenEvidence']
+  onReview: (b: ReviewBody) => void; pending: boolean
 }) {
-  const cited = answer.evidence.filter((e) => e.cited)
+  const cited = uniqueByLocation(answer.evidence.filter((e) => e.cited))
   const other = answer.evidence.filter((e) => !e.cited)
   const text = answer.final_text ?? answer.response_text
   const reasons = answer.reasons.filter((r) => r !== 'CONFLICT')
@@ -146,14 +195,18 @@ function AnswerCard({ answer, onOpen, onReview, pending }: {
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-xs font-semibold text-[#0F172A]">{answer.question_ref}</span>
         <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${READINESS_CLASS[answer.readiness]}`}>{READINESS_LABEL[answer.readiness]}</span>
-        {answer.answer && <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">{ANSWER_LABEL[answer.answer]}</span>}
-        <span className={`ml-auto text-xs ${answer.review_status === 'rejected' ? 'text-red-700' : answer.review_status === 'pending' ? 'text-slate-500' : 'text-emerald-700'}`}>
+        {(answer.final_answer || answer.answer) && (
+          <span data-testid="answer-label" className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+            {answer.final_answer ? FINAL_ANSWER_LABEL[answer.final_answer] : ANSWER_LABEL[answer.answer!]}
+          </span>
+        )}
+        <span data-testid="review-status" className={`ml-auto text-xs font-semibold ${answer.review_status === 'rejected' ? 'text-red-700' : answer.review_status === 'pending' ? 'text-slate-500' : 'text-emerald-700'}`}>
           {REVIEW_LABEL[answer.review_status]}
         </span>
       </div>
       <p className="text-sm font-medium text-[#0F172A]">{answer.question_text}</p>
 
-      {answer.readiness === 'conflict' && <ConflictView answer={answer} onOpen={onOpen} />}
+      {answer.readiness === 'conflict' && <ConflictView answer={answer} resolution={resolution} onOpen={onOpen} />}
 
       {text
         ? <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{text}</p>
@@ -251,6 +304,15 @@ export default function AnswersTab({ requestId, onOpenEvidence }: Props) {
     onError: (e: Error) => setError(e.message),
   })
 
+  // The latest conflict_resolved event per answer, to show what the reviewer chose
+  const activity = useQuery({ queryKey: ['sr-activity', requestId], queryFn: () => securityReviewApi.activity(requestId) })
+  const resolutions = new Map<string, ActivityEvent>()
+  for (const e of activity.data ?? []) {
+    if (e.event_type !== 'conflict_resolved' || !e.entity_id) continue
+    const seen = resolutions.get(e.entity_id)
+    if (!seen || seen.created_at < e.created_at) resolutions.set(e.entity_id, e)
+  }
+
   const answers = (live?.answers ?? run.data?.answers ?? []).slice().sort((a, b) => a.question_row - b.question_row)
   const count = (r: Readiness) => answers.filter((a) => a.readiness === r).length
   const shown = filter === 'all' ? answers : answers.filter((a) => a.readiness === filter)
@@ -318,7 +380,7 @@ export default function AnswersTab({ requestId, onOpenEvidence }: Props) {
 
       <ul className="space-y-3">
         {shown.map((a) => (
-          <AnswerCard key={a.id} answer={a} onOpen={onOpenEvidence} pending={review.isPending}
+          <AnswerCard key={a.id} answer={a} resolution={resolutions.get(a.id)} onOpen={onOpenEvidence} pending={review.isPending}
             onReview={(body) => review.mutate({ id: a.id, body })} />
         ))}
       </ul>

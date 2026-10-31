@@ -65,7 +65,7 @@ export function fakePipelineLlm(overrides: Record<string, FakeReply> = {}, delay
     [PROMPTS.summarize]: { json: { headline: 'fake', top_findings: [], key_exceptions: [], takeaways: [] } },
     [EVIDENCE_PROMPTS.gather]: (input) => ({ json: { passages:
       input?.includes('ref="IAM-01"') ? [POLICY, PENTEST] : input?.includes('ref="IAM-04"') ? [ACCESS_ROW] : [VPN] } }),
-    [EVIDENCE_PROMPTS.conflict]: { json: { explanation: 'clash', conflict: true, a: 1, b: 2 } },
+    [EVIDENCE_PROMPTS.conflict]: { json: { explanation: 'P1 commits to MFA everywhere; P2 found a portal without it.', conflict: true, a: 1, b: 2 } },
     [ANSWER_PROMPTS.draft]: { json: { response_text: 'Acme requires MFA for VPN access.', answer: 'yes', cited: [1], confidence: 0.9 } },
     [ANSWER_PROMPTS.verify]: { json: { reason: 'ok', verdict: 'supported' } },
     ...overrides,

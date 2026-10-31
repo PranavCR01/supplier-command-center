@@ -85,7 +85,20 @@ function questionBlock(q: QuestionnaireItem, asOf: string): string {
   return `<today>${asOf}</today>\n<question ref="${q.ref}"${q.domain ? ` domain="${q.domain}"` : ''}>\n${q.question}\n</question>`
 }
 
-export const todayIso = () => new Date().toISOString().slice(0, 10)
+// The server's local calendar date (not UTC, which rolls over hours early in the Americas)
+export function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+export const todayIso = () => isoDate(new Date())
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+// The as-of date the model was given, in the forms it writes it ("2026-10-31", "October 31, 2026")
+function asOfText(asOf: string): string {
+  const [y, m, d] = asOf.split('-').map(Number)
+  return `${asOf} ${MONTH_NAMES[m - 1] ?? ''} ${d}, ${y}`
+}
 
 export interface AnswerResult {
   answer: DraftedAnswer
@@ -133,9 +146,10 @@ export async function draftAnswer(
     }
   }
 
-  // Numbers in the answer must come from the pages it cites or from the question itself
+  // Numbers in the answer must come from the pages it cites, the question, or today's date
+  // (which the model is given to judge "within the last 12 months")
   const sources = cited.map((p) => unitTextFor(ev, p.document_id, p.locator!) ?? p.quote)
-  const unsupportedNumbers = draft ? numbersNotInSource(draft.response_text, [q.question, ...sources].join('\n')) : []
+  const unsupportedNumbers = draft ? numbersNotInSource(draft.response_text, [q.question, asOfText(asOf), ...sources].join('\n')) : []
 
   let verifier: DraftedAnswer['verifier'] = null
   const verifyNeeded = draft && draft.answer !== 'not_addressed' && !conflict && cited.length > 0 && !citedOutOfRange

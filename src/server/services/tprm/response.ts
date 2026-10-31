@@ -6,7 +6,7 @@ import { locatorLabel } from './parsers.js'
 // approved or edited it, or the checks marked it Ready and nobody rejected it. Everything else
 // is withheld and listed for the vendor, never sent.
 
-export type ResponseLabel = 'Yes' | 'No' | 'Partial' | ''
+export type ResponseLabel = 'Yes' | 'No' | 'Partial' | 'N/A' | ''
 
 export interface ResponseEntry {
   ref: string
@@ -27,7 +27,7 @@ export interface WithheldEntry {
   reasons: ReadinessReason[]
 }
 
-const LABEL: Record<string, ResponseLabel> = { yes: 'Yes', no: 'No', partial: 'Partial' }
+const LABEL: Record<string, ResponseLabel> = { yes: 'Yes', no: 'No', partial: 'Partial', 'n/a': 'N/A' }
 
 export function isReleasable(a: QuestionnaireAnswerRow): boolean {
   if (a.review_status === 'rejected') return false
@@ -49,7 +49,7 @@ export function buildResponse(answers: QuestionnaireAnswerRow[]): { included: Re
     if (isReleasable(a)) {
       included.push({
         ref: a.question_ref, row: a.question_row, domain: a.domain, question: a.question_text,
-        response: LABEL[a.answer ?? ''] ?? '',
+        response: LABEL[a.final_answer ?? a.answer ?? ''] ?? '',
         explanation: (a.final_text ?? a.response_text ?? '').trim(),
         evidence_reference: evidenceReference(a),
         signed_off: a.review_status === 'pending' ? 'checks' : 'human',

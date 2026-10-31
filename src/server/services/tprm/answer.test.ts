@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import type { DocumentFinding, FindingKind, FindingStatus } from '../../../types/index.js'
-import { ANSWER_PROMPTS, draftAnswer, passageUsesFinding } from './answer.js'
+import { ANSWER_PROMPTS, draftAnswer, isoDate, passageUsesFinding } from './answer.js'
 import { buildEvidenceContext, checkPassages, EvidenceContext, QuestionEvidence } from './evidence.js'
 import { ingestDocument } from './ingest.js'
 import { MemorySecurityReviewStore } from './memoryStore.js'
@@ -107,12 +107,26 @@ describe('draftAnswer', () => {
     assert.deepEqual(fromQuestion.answer.unsupported_numbers, [], '24 comes from the question')
   })
 
+  test("today's date, which the model is given, is a valid source for numbers", async () => {
+    const g = gathered([{ document: 'D5', location: loc(11), quote: VPN_QUOTE, stance: 'supports' }])
+    const text = 'MFA is required for VPN, as of today (October 31, 2026; 2026-10-31).'
+    const { answer } = await draftAnswer(llm(draft('yes', text, [1])), ev, findings, Q, g, '2026-10-31')
+    assert.deepEqual(answer.unsupported_numbers, [])
+    const otherDay = await draftAnswer(llm(draft('yes', 'MFA is required for VPN as of October 30, 2026.', [1])), ev, findings, Q, g, '2026-10-31')
+    assert.deepEqual(otherDay.answer.unsupported_numbers, ['30'], 'a different date is still flagged')
+  })
+
+  test('isoDate uses the local calendar date, not UTC', () => {
+    assert.equal(isoDate(new Date(2026, 9, 30, 23, 59)), '2026-10-30')
+    assert.equal(isoDate(new Date(2026, 0, 5, 0, 1)), '2026-01-05')
+  })
+
   test('no verified evidence: no draft call, not addressed, quote failures recorded', async () => {
     const fake = llm(draft('yes', 'x', [1]))
     const { answer } = await draftAnswer(fake, ev, findings, Q, gathered([{ document: 'D2', location: loc(6), quote: 'RTO is 4 hours', stance: 'supports' }]))
     assert.equal(fake.calls.length, 0)
     assert.equal(answer.answer, 'not_addressed')
-    assert.deepEqual(answer.reasons, ['NO_EVIDENCE', 'QUOTE_NOT_FOUND', 'LOW_CONFIDENCE'])
+    assert.deepEqual(answer.reasons, ['NO_EVIDENCE', 'QUOTE_NOT_FOUND'], 'no "low confidence" when nothing was drafted')
   })
 
   test('an adverse passage that failed its quote check blocks Ready', async () => {

@@ -4,6 +4,7 @@ import { ExternalLink, FileText, X } from 'lucide-react'
 import { securityReviewApi } from '@/lib/securityReviewApi'
 import type { Locator } from '../../../types'
 import { locatorLabel } from './labels'
+import { closestLines, reflow } from './text'
 
 export interface EvidenceTarget {
   documentId: string
@@ -96,7 +97,10 @@ export default function EvidenceDrawer({ target, onClose }: { target: EvidenceTa
   }, [target, onClose])
 
   if (!target) return null
-  const parts = data ? highlight(data.unit.text, target.quote) : null
+  const pageText = data ? reflow(data.unit.text) : ''
+  const parts = data ? highlight(pageText, target.quote) : null
+  // No exact match (e.g. the quote joined table cells): mark the lines the quote was built from
+  const approx = data && !parts ? new Set(closestLines(pageText, target.quote)) : new Set<number>()
 
   const openOriginal = async () => {
     try {
@@ -141,6 +145,12 @@ export default function EvidenceDrawer({ target, onClose }: { target: EvidenceTa
               This quote was not found at the cited location. Treat it as unverified.
             </p>
           )}
+          {target.quote && (
+            <figure className="rounded-lg border border-slate-200 p-3">
+              <figcaption className="text-xs font-semibold text-slate-500 mb-1">Quoted</figcaption>
+              <blockquote data-testid="evidence-quote" className="text-sm text-[#0F172A] break-words">“{target.quote}”</blockquote>
+            </figure>
+          )}
           {isLoading && <p className="text-sm text-slate-500">Loading page text…</p>}
           {error && <p className="text-sm text-red-700">Could not load this page.</p>}
           {data && (
@@ -154,8 +164,12 @@ export default function EvidenceDrawer({ target, onClose }: { target: EvidenceTa
                 <SheetRows text={data.unit.text} from={target.locator.row_start} to={target.locator.row_end} />
               ) : (
                 <>
-                  {target.verified && !parts && (
-                    <p className="text-xs text-slate-500">The quote matched approximately, so it is not highlighted.</p>
+                  {!parts && (
+                    <p className="text-xs text-slate-500">
+                      {approx.size > 0
+                        ? 'No word-for-word match on this page; the closest lines are marked.'
+                        : 'No word-for-word match on this page.'}
+                    </p>
                   )}
                   <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-slate-700 bg-slate-50 border border-slate-100 rounded-lg p-4">
                     {parts ? (
@@ -164,7 +178,14 @@ export default function EvidenceDrawer({ target, onClose }: { target: EvidenceTa
                         <mark data-testid="evidence-highlight" className="bg-amber-100 text-[#0F172A] rounded px-0.5">{parts.match}</mark>
                         {parts.after}
                       </>
-                    ) : data.unit.text}
+                    ) : pageText.split('\n').map((line, i) => (
+                      <span key={i}>
+                        {approx.has(i)
+                          ? <mark data-testid="evidence-approx" title="closest match" className="bg-amber-50 text-[#0F172A] rounded px-0.5">{line}</mark>
+                          : line}
+                        {'\n'}
+                      </span>
+                    ))}
                   </pre>
                 </>
               )}

@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import type {
   ActivityActor,
   ActivityEvent,
+  AnswerReviewPatch,
   DocumentFinding,
   DocumentUnitRow,
   DraftedAnswer,
@@ -79,7 +80,7 @@ export interface SecurityReviewStore {
   saveAnswer(supplierId: string, runId: string, answer: DraftedAnswer): Promise<QuestionnaireAnswerRow>
   listAnswers(runId: string): Promise<QuestionnaireAnswerRow[]>
   getAnswer(id: string, supplierId: string): Promise<QuestionnaireAnswerRow | null>
-  updateAnswer(id: string, patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'>): Promise<void>
+  updateAnswer(id: string, patch: AnswerReviewPatch): Promise<void>
 
   // Technical contact (else primary) owns generated remediation items by default
   getOwnerContact(supplierId: string): Promise<{ id: string; name: string } | null>
@@ -224,7 +225,7 @@ export class SupabaseSecurityReviewStore implements SecurityReviewStore {
     return (data as QuestionnaireAnswerRow | null) ?? null
   }
 
-  async updateAnswer(id: string, patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'>): Promise<void> {
+  async updateAnswer(id: string, patch: AnswerReviewPatch): Promise<void> {
     const { error } = await this.db.from('questionnaire_answers').update(patch).eq('id', id)
     if (error) throw new Error(`update questionnaire_answers failed: ${error.message}`)
   }

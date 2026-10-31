@@ -1,16 +1,21 @@
 import * as z from 'zod/v4'
-import type { QuestionnaireAnswerRow } from '../../../types/index.js'
+import type { AnswerReviewPatch, QuestionnaireAnswerRow } from '../../../types/index.js'
 import { SecurityReviewStore } from './store.js'
 
 const MAX_TEXT = 4000
 
 const text = z.string().trim().min(1, 'Text is required').max(MAX_TEXT)
+// The Response cell the buyer sees (Yes / No / Partial / N/A); defaults to the AI's label
+const finalAnswer = z.enum(['yes', 'no', 'partial', 'n/a']).optional()
 
 export const ReviewSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('approve') }),
-  z.object({ action: z.literal('edit'), final_text: text }),
+  z.object({ action: z.literal('approve'), final_answer: finalAnswer }),
+  z.object({ action: z.literal('edit'), final_text: text, final_answer: finalAnswer }),
   // A conflict is resolved by choosing a side (or neither) and writing the answer to send
-  z.object({ action: z.literal('resolve'), choice: z.enum(['a', 'b', 'custom']), final_text: text, note: z.string().trim().max(1000).optional() }),
+  z.object({
+    action: z.literal('resolve'), choice: z.enum(['a', 'b', 'custom']), final_text: text,
+    note: z.string().trim().max(1000).optional(), final_answer: finalAnswer,
+  }),
   z.object({ action: z.literal('reject'), note: z.string().trim().max(1000).optional() }),
 ])
 export type ReviewAction = z.infer<typeof ReviewSchema>
@@ -48,9 +53,15 @@ export async function reviewAnswer(
   if (action.action === 'approve' && !answer.response_text?.trim()) {
     throw new ReviewRejected('There is no drafted text to approve; edit the answer instead', 409)
   }
+  // "Not addressed" is not a value the buyer's questionnaire accepts, so a person must choose one
+  const chosen = action.action === 'reject' ? undefined : action.final_answer
+  if (action.action !== 'reject' && !chosen && (answer.answer === 'not_addressed' || answer.answer === null)) {
+    throw new ReviewRejected('Choose the response to send: Yes, No, Partial or N/A', 400)
+  }
 
-  const patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'> = {
+  const patch: AnswerReviewPatch = {
     reviewed_at: new Date().toISOString(),
+    ...(chosen && { final_answer: chosen }),
     ...(action.action === 'approve' && { review_status: 'approved', final_text: null }),
     ...((action.action === 'edit' || action.action === 'resolve') && { review_status: 'edited', final_text: action.final_text }),
     ...(action.action === 'reject' && { review_status: 'rejected' }),
@@ -63,6 +74,7 @@ export async function reviewAnswer(
       question_ref: answer.question_ref, run_id: answer.run_id,
       ai_readiness: answer.readiness, ai_reasons: answer.reasons,
       ...(action.action === 'resolve' && { choice: action.choice }),
+      ...(chosen && { final_answer: chosen }),
       ...('note' in action && action.note && { note: action.note }),
     },
   })

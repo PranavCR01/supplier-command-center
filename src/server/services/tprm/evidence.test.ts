@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { buildEvidenceContext, EVIDENCE_PROMPTS, EvidenceContext, gatherAllEvidence, gatherQuestionEvidence } from './evidence.js'
+import { buildEvidenceContext, EVIDENCE_PROMPTS, EvidenceContext, gatherAllEvidence, gatherQuestionEvidence, namePassages } from './evidence.js'
 import { ingestDocument } from './ingest.js'
 import { MemorySecurityReviewStore } from './memoryStore.js'
 import { QuestionnaireItem } from './parsers.js'
@@ -84,6 +84,17 @@ describe('gatherQuestionEvidence', () => {
       assert.equal(r.conflict.conflict.a?.filename, 'acme_infosec_access_control_policy_v3.2.pdf')
       assert.equal(r.conflict.conflict.b?.filename, 'acme_pentest_summary_2026.pdf')
     }
+  })
+
+  test('conflict explanations name the documents, not the model\'s passage numbers', async () => {
+    const r = await gatherQuestionEvidence(llmWith([POLICY_MFA, PENTEST_MFA],
+      { json: { conflict: true, a: 1, b: 2, explanation: 'P1 says MFA everywhere; P2 found the portal without it. P9 is unknown.' } }), ev, IAM01)
+    assert.equal(r.conflict.status, 'detected')
+    if (r.conflict.status === 'detected') {
+      assert.equal(r.conflict.conflict.explanation,
+        'acme_infosec_access_control_policy_v3.2 (p. 3) says MFA everywhere; acme_pentest_summary_2026 (p. 3) found the portal without it. P9 is unknown.')
+    }
+    assert.equal(namePassages('no references here', []), 'no references here')
   })
 
   test('the gather call carries the question as untrusted input after the cached evidence', async () => {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import type {
-  ActivityEvent, DocumentFinding, DocumentUnitRow, DraftedAnswer, QuestionnaireAnswerRow, QuestionnaireRun, RemediationItem, SecurityDocument,
+  ActivityEvent, AnswerReviewPatch, DocumentFinding, DocumentUnitRow, DraftedAnswer, QuestionnaireAnswerRow, QuestionnaireRun, RemediationItem, SecurityDocument,
 } from '../../../types/index.js'
 import {
   NewActivityEvent, NewFinding, NewRemediationItem, NewRun, NewSecurityDocument, NewUnit, RemediationPatch, SecurityReviewStore,
@@ -128,7 +128,7 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
     }
     const row: QuestionnaireAnswerRow = {
       ...answer, id: randomUUID(), supplier_id: supplierId, run_id: runId, review_status: 'pending',
-      final_text: null, reviewed_at: null, created_at: now, updated_at: now,
+      final_text: null, final_answer: null, reviewed_at: null, created_at: now, updated_at: now,
     }
     this.answers.push(row)
     return { ...row }
@@ -143,7 +143,7 @@ export class MemorySecurityReviewStore implements SecurityReviewStore {
     return row ? { ...row } : null
   }
 
-  async updateAnswer(id: string, patch: Pick<Partial<QuestionnaireAnswerRow>, 'review_status' | 'final_text' | 'reviewed_at'>) {
+  async updateAnswer(id: string, patch: AnswerReviewPatch) {
     const row = this.answers.find((a) => a.id === id)
     if (!row) throw new Error(`answer ${id} not found`)
     Object.assign(row, patch, { updated_at: new Date().toISOString() })

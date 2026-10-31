@@ -31,6 +31,7 @@ opinion second, the model's own confidence last, and a human for anything unreso
 | 8 | Remediation items + Jira-style CSV/JSON export | Done |
 | 9 | Final response assembled from Ready answers only | Done |
 | 10 | Seed message, end-to-end run, 375px check, CLAUDE.md fixes, record | Done (Supabase check + merge decisions are Pranav's) |
+| 11 | Fixes from local testing (14 items, below) | Done in code + UI check; **run `docs/migrations/2026-11-01_final_answer.sql` on Supabase** |
 
 **Step 6 local check (needs the real DB; not possible in the cloud session):**
 1. Supabase SQL editor: run `docs/migrations/2026-10-31_security_review_additions.sql` → "Success. No rows returned".
@@ -105,6 +106,28 @@ Remaining misses, stated plainly:
   calls this an auditor exception, not a conflict; the model's reading is defensible and resembles VULN-02,
   which gold labels a conflict. Gold not changed; label worth a second look by a human.
 - Every prompt change above was judged on the same 22 questions it will be scored on (circular).
+
+### Step 11: fixes from local testing (2026-10-31)
+
+Found while testing the page locally on the real project; fixed in one pass.
+1. Changing a document's type now marks it for re-analysis (findings and summary were from the old type).
+2. Evidence drawer joins PDF lines broken mid-sentence (narrow table columns) — display only.
+3. The as-of date counts as a source for UNSUPPORTED_NUMBER ("as of October 31, 2026" was flagged).
+4. As-of date is the local date, not UTC (evening runs were dated tomorrow).
+5. Conflict explanations name the document and page instead of the model's P1/P2 (server for new runs,
+   client fallback for stored ones); long Activity details collapse to two lines.
+6. One citation chip per document location.
+7. A resolved conflict collapses and shows the chosen side and note (from the activity event).
+8. VERIFIER_PARTIAL reads "Second check: not fully supported".
+9. LOW_CONFIDENCE only when something was drafted (it was shown next to "No answer drafted").
+10. Review status text is bold (no icons; owner's choice).
+11. Evidence drawer always shows the quoted text; with no word-for-word match it marks the closest lines.
+12. Reviewers choose the Response cell (Yes / No / Partial / N/A) when editing or resolving; it defaults to
+    the AI's label, is required when the AI said "not addressed" (Approve is hidden then), and is what the
+    filled questionnaire shows. New column `questionnaire_answers.final_answer`
+    (`docs/migrations/2026-11-01_final_answer.sql`; `tprm:check-supabase` checks it).
+13. Jira CSV leaves out items that already have a Jira key; the page says which were skipped.
+14. Activity says what changed on a remediation item and which SLA the generated due dates used.
 
 ### Step 10: wrap-up
 

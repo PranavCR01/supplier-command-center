@@ -253,6 +253,16 @@ describe('document analysis', () => {
     assert.equal(store.documents[0].doc_type_source, 'user')
     assert.equal(store.events.at(-1)?.event_type, 'document_type_set')
   })
+
+  test('changing the type marks the document for re-analysis; re-choosing the same type does not', async () => {
+    await upload(sample('acme_phishing_simulation_summary_2026.pdf'), 'ph.pdf')
+    const id = store.documents[0].id
+    await store.updateDocument(id, { doc_type: 'phishing_summary', analysis_status: 'analyzed' })
+    await patch(`/documents/${id}`, { doc_type: 'phishing_summary' })
+    assert.equal(store.documents[0].analysis_status, 'analyzed')
+    await patch(`/documents/${id}`, { doc_type: 'security_policy' })
+    assert.equal(store.documents[0].analysis_status, 'pending')
+  })
 })
 
 describe('questionnaire runs', () => {
@@ -413,6 +423,26 @@ describe('human review', () => {
     assert.deepEqual([store.events.at(-1)!.event_type, store.events.at(-1)!.payload.choice], ['conflict_resolved', 'b'])
   })
 
+  test('a "not addressed" answer needs a chosen response before it can go to the buyer', async () => {
+    const { ready } = await completedRun()
+    const row = store.answers.find((a) => a.id === ready.id)!
+    Object.assign(row, { answer: 'not_addressed', readiness: 'needs_evidence' })
+    const missing = await patchAnswer(ready.id, { action: 'edit', final_text: 'Not stated in our documents.' })
+    assert.equal(missing.status, 400)
+    assert.match(((await missing.json()) as { error: string }).error, /Choose the response/)
+    assert.equal((await patchAnswer(ready.id, { action: 'edit', final_text: 'x', final_answer: 'maybe' })).status, 400)
+    const ok = await patchAnswer(ready.id, { action: 'edit', final_text: 'Not stated in our documents.', final_answer: 'n/a' })
+    assert.equal(ok.status, 200)
+    assert.deepEqual([row.review_status, row.final_answer, row.answer], ['edited', 'n/a', 'not_addressed'], 'AI label kept')
+    assert.equal(store.events.at(-1)!.payload.final_answer, 'n/a')
+  })
+
+  test('approving can override the response value', async () => {
+    const { ready } = await completedRun()
+    await patchAnswer(ready.id, { action: 'approve', final_answer: 'partial' })
+    assert.equal(store.answers.find((a) => a.id === ready.id)!.final_answer, 'partial')
+  })
+
   test('bad input and other suppliers are refused', async () => {
     const { ready } = await completedRun()
     assert.equal((await patchAnswer(ready.id, { action: 'edit', final_text: '   ' })).status, 400)
@@ -471,6 +501,13 @@ describe('remediation', () => {
     assert.match(text, /^"Summary","Description","Priority","Assignee","Due Date","Labels"\r\n"PT-01: VPN firmware RCE"/)
     const json = await (await get('/requests/req-1/remediation/export?format=json')).json() as { items: unknown[] }
     assert.equal(json.items.length, 1)
+
+    // once linked to Jira, the item leaves the import CSV but stays in the JSON export
+    await patchItem(store.remediation[0].id, { external_key: 'SEC-1' })
+    const after = await (await get('/requests/req-1/remediation/export?format=csv')).text()
+    assert.equal(after.trim().split('\r\n').length, 1, 'header only')
+    const jsonAfter = await (await get('/requests/req-1/remediation/export?format=json')).json() as { items: { external_key: string }[] }
+    assert.equal(jsonAfter.items[0].external_key, 'SEC-1')
     assert.equal((await get('/requests/req-1/remediation/export', 'user-other')).status, 404)
     assert.equal((await post('/requests/req-1/remediation/generate', 'user-other')).status, 404)
   })

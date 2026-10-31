@@ -47,5 +47,7 @@ test('high model confidence never overrides a failed check', () => {
   assert.deepEqual(decide({ confidence: 1, verifierVerdict: null }), { readiness: 'needs_evidence', reasons: ['VERIFIER_UNSUPPORTED'] },
     'a skipped verifier never defaults to Ready')
   assert.deepEqual(decide({ citedVerified: 0, verifierVerdict: null }).reasons, ['NO_EVIDENCE'], 'no extra reason when already held back')
+  assert.deepEqual(decide({ answerNotAddressed: true, confidence: null, verifierVerdict: null }).reasons, ['NO_EVIDENCE'],
+    'no "low confidence" when nothing was drafted')
   assert.equal(decide({ confidence: 0.7 }).readiness, 'ready', '0.7 is the threshold')
 })

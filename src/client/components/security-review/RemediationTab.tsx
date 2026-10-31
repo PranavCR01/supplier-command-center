@@ -3,15 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Download, Loader2, Wrench } from 'lucide-react'
 import { RemediationRow, securityReviewApi } from '@/lib/securityReviewApi'
 import type { RemediationSeverity, RemediationStatus } from '../../../types'
+import { STATUS_LABEL } from './labels'
 
 const SEVERITY_CLASS: Record<RemediationSeverity, string> = {
   critical: 'bg-red-50 text-red-700 border-red-200',
   high: 'bg-amber-50 text-amber-800 border-amber-200',
   medium: 'bg-slate-50 text-slate-700 border-slate-200',
   low: 'bg-slate-50 text-slate-600 border-slate-200',
-}
-const STATUS_LABEL: Record<RemediationStatus, string> = {
-  open: 'Open', in_progress: 'In progress', done: 'Done', risk_accepted: 'Risk accepted',
 }
 const btn = 'inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#0369A1] focus-visible:outline-none'
 
@@ -80,9 +78,26 @@ export default function RemediationTab({ requestId }: { requestId: string }) {
     onSuccess: refresh,
     onError: (e: Error) => setError(e.message),
   })
-  const download = (format: 'csv' | 'json') => securityReviewApi.downloadRemediation(requestId, format).catch((e: Error) => setError(e.message))
-
   const items = data?.items ?? []
+  const download = async (format: 'csv' | 'json') => {
+    setError(null)
+    // The Jira CSV leaves out items that already have a Jira key, so a re-import makes no duplicates
+    const inJira = format === 'csv' ? items.filter((i) => i.external_key) : []
+    if (format === 'csv' && inJira.length === items.length) {
+      setNote('Nothing to export: every item already has a Jira key.')
+      return
+    }
+    try {
+      await securityReviewApi.downloadRemediation(requestId, format)
+      if (format === 'csv') {
+        setNote(`${items.length - inJira.length} exported to the Jira CSV` +
+          (inJira.length ? `; ${inJira.length} already in Jira (${inJira.map((i) => i.external_key).join(', ')}) skipped.` : '.'))
+      }
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
   const overdue = items.filter((i) => i.overdue).length
   return (
     <div className="space-y-4">

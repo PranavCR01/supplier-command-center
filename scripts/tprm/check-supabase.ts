@@ -78,7 +78,7 @@ async function abort(message: string): Promise<never> {
 }
 
 // 1. Migration columns (2026-10-31_security_review_additions.sql)
-for (const [table, column] of [['security_documents', 'analysis_status'], ['questionnaire_runs', 'as_of'], ['questionnaire_answers', 'question_row']]) {
+for (const [table, column] of [['security_documents', 'analysis_status'], ['questionnaire_runs', 'as_of'], ['questionnaire_answers', 'question_row'], ['questionnaire_answers', 'final_answer']]) {
   const { error } = await db.from(table).select(column).limit(1)
   if (error) await abort(`${table}.${column} missing — run docs/migrations/2026-10-31_security_review_additions.sql (${error.message})`)
 }

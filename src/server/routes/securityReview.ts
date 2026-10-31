@@ -199,9 +199,10 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm
       res.json({ exported_at: new Date().toISOString(), items })
       return
     }
+    // Items that already have a Jira key are tracked there; importing them again would duplicate them
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', `attachment; filename="remediation-${stamp}.csv"`)
-    res.send(toJiraCsv(items))
+    res.send(toJiraCsv(items.filter((i) => !i.external_key)))
   }))
 
   router.patch('/remediation/:itemId', wrap(async (req, res) => {
@@ -323,7 +324,11 @@ export function createSecurityReviewRouter({ store, requireAuth, samplesDir, llm
       res.status(400).json({ error: `doc_type must be one of: ${SETTABLE_DOC_TYPES.join(', ')}` })
       return
     }
-    await store.updateDocument(doc.id, { doc_type: docType as SecurityDocType, doc_type_source: 'user' })
+    // A different type means the findings and summary were extracted for the wrong kind of document
+    const changed = doc.doc_type !== docType
+    await store.updateDocument(doc.id, {
+      doc_type: docType as SecurityDocType, doc_type_source: 'user', ...(changed && { analysis_status: 'pending' }),
+    })
     await store.logEvent({
       supplier_id: req.supplierId!, request_id: doc.request_id, actor: 'user', actor_id: req.userId ?? null,
       event_type: 'document_type_set', entity_type: 'security_document', entity_id: doc.id,

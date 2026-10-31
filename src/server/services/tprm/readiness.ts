@@ -47,7 +47,8 @@ export function decideReadiness(i: ReadinessInput): { readiness: Readiness; reas
   if (i.answerAdmitsGap) hit.add('GAP_DISCLOSED')
   if (i.verifierVerdict === 'unsupported') hit.add('VERIFIER_UNSUPPORTED')
   if (i.verifierVerdict === 'partially_supported') hit.add('VERIFIER_PARTIAL')
-  if (i.confidence === null || i.confidence < MIN_CONFIDENCE) hit.add('LOW_CONFIDENCE')
+  // A missing score (nothing was drafted) is only a reason when no other rule already applies
+  if (i.confidence === null ? hit.size === 0 : i.confidence < MIN_CONFIDENCE) hit.add('LOW_CONFIDENCE')
 
   // Ready needs a positive verdict, not just the absence of a negative one: if a code path ever
   // skips the verifier, the answer must not become Ready by default

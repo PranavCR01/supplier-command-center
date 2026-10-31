@@ -67,11 +67,14 @@ async function main() {
   const sides = page.getByTestId('conflict-view').locator('.grid > div')
   const [a, b] = [await sides.nth(0).boundingBox(), await sides.nth(1).boundingBox()]
   check(a && b && Math.abs(a.y - b.y) < 2 && b.x > a.x, 'conflict passages side by side on desktop')
+  const explanation = await page.getByTestId('conflict-view').textContent()
+  check(!/\bP\d\b/.test(explanation) && /policy.*\(p\. \d+\)/i.test(explanation), 'conflict explanation names documents, not P1/P2')
 
   await page.getByTestId('conflict-view').getByRole('button').first().click()
   await page.getByRole('dialog', { name: 'Evidence' }).waitFor()
   await page.getByTestId('evidence-highlight').waitFor()
   check(/multi-factor/i.test(await page.getByTestId('evidence-highlight').textContent()), 'evidence drawer highlights the quote')
+  check(/multi-factor/i.test(await page.getByTestId('evidence-quote').textContent()), 'evidence drawer shows the quoted text')
   await page.screenshot({ path: path.join(OUT, 'desktop-evidence.png') })
   await page.keyboard.press('Escape')
   check(await page.getByRole('dialog', { name: 'Evidence' }).count() === 0, 'Escape closes the drawer')
@@ -79,9 +82,18 @@ async function main() {
   await page.getByRole('button', { name: 'Approve' }).count().then((n) => check(n === 0, 'a conflict cannot be approved directly'))
   await page.getByLabel('B (evidence against)').check()
   await page.getByLabel('Note for the record (optional)').fill('pen test is the current state')
+  const picker = page.getByTestId('response-picker')
+  check(await picker.getByLabel('Yes').isChecked(), 'resolve form: Response defaults to the AI label')
+  await picker.getByLabel('Partial').check()
   await page.getByRole('button', { name: 'Resolve conflict' }).click()
   await page.getByText('Edited and approved').waitFor()
   ok('conflict resolved')
+  const resolved = page.getByTestId('conflict-resolved')
+  const resolvedText = await resolved.locator('summary').textContent()
+  check(/chose B/.test(resolvedText) && resolvedText.includes('pen test is the current state'), 'resolved conflict shows the chosen side and note')
+  check(await page.getByTestId('conflict-view').count() === 0 && !(await resolved.getAttribute('open')), 'resolved conflict is collapsed')
+  check(await page.getByTestId('answer-card').getByTestId('answer-label').textContent() === 'Partial', 'chosen Response shown on the answer')
+  check(/font-semibold/.test(await page.getByTestId('answer-card').getByTestId('review-status').getAttribute('class')), 'review status is bold')
   await page.screenshot({ path: path.join(OUT, 'desktop-conflict.png'), fullPage: true })
 
   await page.getByRole('tab', { name: /Ready 21/ }).click()
@@ -105,7 +117,10 @@ async function main() {
   await page.waitForTimeout(500)
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Jira CSV' }).click()])
   const csv = fs.readFileSync(await download.path(), 'utf-8')
-  check(csv.startsWith('"Summary","Description","Priority","Assignee","Due Date","Labels"') && csv.includes('"Highest"'), 'remediation: Jira CSV downloaded')
+  check(csv.startsWith('"Summary","Description","Priority","Assignee","Due Date","Labels"') && csv.includes('PT-03'), 'remediation: Jira CSV downloaded')
+  check(!csv.includes('PT-01'), 'remediation: item already in Jira left out of the CSV')
+  await page.getByText('1 exported to the Jira CSV; 1 already in Jira (SEC-42) skipped.').waitFor()
+  ok('remediation: CSV message names the skipped item')
   check(/^remediation-\d{4}-\d{2}-\d{2}\.csv$/.test(download.suggestedFilename()), `remediation: dated filename (${download.suggestedFilename()})`)
   await page.screenshot({ path: path.join(OUT, 'desktop-remediation.png'), fullPage: true })
 
@@ -122,15 +137,21 @@ async function main() {
   const responseOf = (ref) => { let v; qs.eachRow((r) => { if (r.getCell(1).value === ref) v = r.getCell(4).value }); return v }
   check(xlsx.suggestedFilename() === 'clearfield_vendor_security_questionnaire_response.xlsx', `response: questionnaire downloaded (${xlsx.suggestedFilename()})`)
   check(responseOf('GOV-01') === 'Yes' && (responseOf('GOV-03') ?? null) === null, 'response: xlsx filled, withheld row left blank')
+  check(responseOf('IAM-01') === 'Partial', 'response: reviewer-chosen Response exported')
   await page.screenshot({ path: path.join(OUT, 'desktop-response.png'), fullPage: true })
 
   await page.getByRole('tab', { name: 'Activity' }).click()
-  await page.getByTestId('activity-event').first().waitFor()
+  // The Answers tab shares this query, so cached events render first; wait for the refetch
+  await page.getByTestId('activity-event').filter({ hasText: 'Response exported' }).waitFor()
   const activity = await page.getByTestId('activity-event').allTextContents()
   check(activity.some((t) => t.includes('Conflict resolved') && t.includes('IAM-01')), 'activity shows the conflict resolution')
   check(activity.some((t) => t.includes('Answer approved')), 'activity shows the approval')
   check(activity.some((t) => t.includes('AI flagged a conflict')), 'activity shows the AI conflict flag')
   check(activity.filter((t) => t.includes('Remediation item updated')).length === 2, 'activity shows the remediation updates')
+  check(activity.some((t) => t.includes('PT-01: status → In progress')) && activity.some((t) => t.includes('PT-01: Jira key → SEC-42')),
+    'activity says what changed on a remediation item')
+  check(activity.some((t) => t.includes('2 created') && t.includes('due dates from your policy SLA')), 'activity details the remediation generation')
+  check(activity.some((t) => t.includes('IAM-01') && t.includes('chose B') && t.includes('response Partial')), 'activity shows the chosen side and Response')
   check(activity.some((t) => t.includes('Response exported') && t.includes('21 answers included, 1 withheld')), 'activity shows the export')
 
   await page.goto(`${PAGE}?tab=answers`)
@@ -186,10 +207,12 @@ async function main() {
 
   await m.page.goto(`${PAGE}?tab=answers`)
   await m.page.getByRole('tab', { name: /Conflict 1/ }).click()
-  const msides = m.page.getByTestId('conflict-view').locator('.grid > div')
+  // Resolved on desktop above, so the disagreement is collapsed; open it
+  await m.page.getByTestId('conflict-resolved').locator('summary').click()
+  const msides = m.page.getByTestId('conflict-resolved').locator('.grid > div')
   const [ma, mb] = [await msides.nth(0).boundingBox(), await msides.nth(1).boundingBox()]
   check(ma && mb && mb.y >= ma.y + ma.height - 1, '375px: conflict passages stacked')
-  await m.page.getByTestId('conflict-view').getByRole('button').first().click()
+  await m.page.getByTestId('conflict-resolved').locator('.grid button').first().click()
   const drawer = await m.page.getByRole('dialog', { name: 'Evidence' }).boundingBox()
   check(drawer && drawer.width >= 374, '375px: evidence drawer is full width')
   check(await noHorizontalScroll(m.page), '375px: no horizontal scroll with the drawer open')
