@@ -6,6 +6,8 @@ An AI-powered supplier portal: answer buyer requests, keep compliance current, a
 
 **Live demo:** https://supplier-command-center.vercel.app
 
+**Demo video (2:47):** https://youtu.be/I2_KazIkR9I — inbox, AI drafts, and a full security review: document analysis, code-checked citations, a conflict resolved by a person, the filled questionnaire, and remediation.
+
 ---
 
 ## The Problem
